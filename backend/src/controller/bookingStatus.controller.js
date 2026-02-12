@@ -39,3 +39,37 @@ export const completeBooking = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+export const getBookings = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspaceId;
+
+    const bookings = await Booking.find({ workspaceId })
+      .populate("contactId")
+      .sort({ scheduledAt: 1 });
+
+    res.json(bookings);
+  } catch (error) {
+    console.error("Get bookings error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const updateBookingStatus = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { status } = req.body;
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    booking.status = status;
+    await booking.save();
+
+    res.json({ message: "Status updated" });
+  } catch (error) {
+    console.error("Update booking status error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};

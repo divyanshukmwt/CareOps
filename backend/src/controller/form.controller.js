@@ -1,15 +1,10 @@
 import BookingForm from "../models/bookingForm.models.js";
 import Form from "../models/form.models.js";
 
-/**
- * PUBLIC: Get post-booking form using PUBLIC ID
- * URL: /form/:bookingFormPublicId
- */
 export const getPublicForm = async (req, res) => {
   try {
     const { bookingFormPublicId } = req.params;
 
-    // 🔍 LOOKUP (THIS IS THE KEY PART)
     const bookingForm = await BookingForm.findOne({
       publicId: bookingFormPublicId,
     }).populate("formId");
@@ -19,24 +14,18 @@ export const getPublicForm = async (req, res) => {
     }
 
     res.json({
-      bookingFormId: bookingForm._id, // internal only
-      form: bookingForm.formId,       // fields + labels
+      bookingFormId: bookingForm._id,
+      form: bookingForm.formId,
     });
   } catch (error) {
-    console.error("Get public form error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-/**
- * PUBLIC: Submit post-booking form using PUBLIC ID
- * URL: /form/:bookingFormPublicId
- */
 export const submitPublicForm = async (req, res) => {
   try {
     const { bookingFormPublicId } = req.params;
 
-    // 🔍 LOOKUP
     const bookingForm = await BookingForm.findOne({
       publicId: bookingFormPublicId,
     });
@@ -53,19 +42,16 @@ export const submitPublicForm = async (req, res) => {
 
     res.json({ message: "Form submitted successfully" });
   } catch (error) {
-    console.error("Submit form error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-/**
- * ADMIN: Create a form (internal)
- */
 export const createForm = async (req, res) => {
   try {
-    const { workspaceId, title, description, fields } = req.body;
+    const { title, description, fields } = req.body;
+    const workspaceId = req.user.workspaceId; // ✅ FROM AUTH
 
-    if (!workspaceId || !title || !fields) {
+    if (!title || !fields || fields.length === 0) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -76,12 +62,21 @@ export const createForm = async (req, res) => {
       fields,
     });
 
-    res.status(201).json({
-      message: "Form created successfully",
-      form,
-    });
+    res.status(201).json(form);
   } catch (error) {
     console.error("Create form error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getForms = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspaceId;
+
+    const forms = await Form.find({ workspaceId }).sort({ createdAt: -1 });
+    res.json(forms);
+  } catch (error) {
+    console.error("Get forms error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

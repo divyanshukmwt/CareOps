@@ -4,24 +4,27 @@ import Booking from "../models/booking.models.js";
 
 export const getDashboardStats = async (req, res) => {
   try {
-    const { workspaceId } = req.params;
+    // ✅ AUTH-BASED WORKSPACE
+    const workspaceId = req.user.workspaceId;
 
-    /* ---------------- LEADS & INBOX ---------------- */
-
-    const totalConversations = await Conversation.countDocuments({
-      workspaceId,
-    });
-
-    const conversations = await Conversation.find({ workspaceId });
-
-    let unansweredConversations = 0;
-    let newInquiriesToday = 0;
-
+    /* =====================
+       DATE HELPERS
+    ===================== */
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
+
+    /* =====================
+       LEADS & INBOX
+    ===================== */
+    const conversations = await Conversation.find({ workspaceId });
+
+    const totalConversations = conversations.length;
+
+    let unansweredConversations = 0;
+    let newInquiriesToday = 0;
 
     for (const conv of conversations) {
       const lastMessage = await Message.findOne({
@@ -36,21 +39,19 @@ export const getDashboardStats = async (req, res) => {
         unansweredConversations++;
       }
 
-      if (conv.createdAt >= todayStart) {
+      if (conv.createdAt >= todayStart && conv.createdAt <= todayEnd) {
         newInquiriesToday++;
       }
     }
 
-    /* ---------------- BOOKINGS ---------------- */
-
+    /* =====================
+       BOOKINGS
+    ===================== */
     const totalBookings = await Booking.countDocuments({ workspaceId });
 
     const todaysBookings = await Booking.countDocuments({
       workspaceId,
-      scheduledAt: {
-        $gte: todayStart,
-        $lte: todayEnd,
-      },
+      scheduledAt: { $gte: todayStart, $lte: todayEnd },
     });
 
     const upcomingBookings = await Booking.countDocuments({
@@ -69,27 +70,27 @@ export const getDashboardStats = async (req, res) => {
       status: "NO_SHOW",
     });
 
-    /* ---------------- ALERTS ---------------- */
-
+    /* =====================
+       ALERTS
+    ===================== */
     const alerts = [];
 
     if (unansweredConversations > 0) {
-      alerts.push(
-        `${unansweredConversations} conversation(s) awaiting reply`
-      );
+      alerts.push(`${unansweredConversations} conversation(s) awaiting reply`);
     }
 
     if (todaysBookings > 0) {
       alerts.push(`${todaysBookings} booking(s) scheduled today`);
     }
 
+    /* =====================
+       RESPONSE
+    ===================== */
     res.json({
-      /* Leads */
       totalConversations,
       unansweredConversations,
       newInquiriesToday,
 
-      /* Bookings */
       totalBookings,
       todaysBookings,
       upcomingBookings,

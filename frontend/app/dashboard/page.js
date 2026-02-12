@@ -12,9 +12,10 @@ export default function DashboardPage() {
 
     const fetchStats = async () => {
         setLoading(true);
-        const res = await fetch(
-            `http://localhost:4000/api/dashboard/${WORKSPACE_ID}`
-        );
+        const res = await fetch("http://localhost:4000/api/dashboard/stats", {
+            credentials: "include",
+        });
+
         const data = await res.json();
         setStats(data);
         setLoading(false);

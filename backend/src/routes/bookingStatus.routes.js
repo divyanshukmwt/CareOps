@@ -1,8 +1,13 @@
 import express from "express";
-import { completeBooking } from "../controller/bookingStatus.controller.js";
+import {
+  getBookings,
+  updateBookingStatus,
+} from "../controller/bookingStatus.controller.js";
+import { requireAuth } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-router.post("/:bookingId/complete", completeBooking);
+router.get("/", requireAuth, getBookings);
+router.patch("/:bookingId/status", requireAuth, updateBookingStatus);
 
 export default router;

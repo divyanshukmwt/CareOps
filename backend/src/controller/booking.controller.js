@@ -23,13 +23,8 @@ export const createBooking = async (req, res) => {
     }
 
     let contact = await Contact.findOne({ workspaceId, email });
-
     if (!contact) {
-      contact = await Contact.create({
-        workspaceId,
-        name,
-        email,
-      });
+      contact = await Contact.create({ workspaceId, name, email });
     }
 
     let conversation = await Conversation.findOne({
@@ -70,12 +65,12 @@ export const createBooking = async (req, res) => {
       await Message.create({
         conversationId: conversation._id,
         sender: "SYSTEM",
-        content: `Please complete the form: ${form.title}\nForm Link: http://localhost:3000/forms/${bookingForm._id}`,
+        content: `Please complete the form: ${form.title}\nForm Link: http://localhost:3000/form/${bookingForm.publicId}`,
         channel: "INTERNAL",
       });
     }
 
-    io.to(workspaceId).emit("dashboard:update");
+    io.to(workspaceId.toString()).emit("dashboard:update");
 
     const icsContent = await generateICS({
       bookingId: booking._id.toString(),
@@ -94,7 +89,6 @@ export const createBooking = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Booking creation error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

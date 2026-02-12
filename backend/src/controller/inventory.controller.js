@@ -21,13 +21,13 @@ export const createInventoryItem = async (req, res) => {
 
 export const getInventory = async (req, res) => {
   try {
-    const { workspaceId } = req.params;
+    const workspaceId = req.user.workspaceId;
 
     const items = await Inventory.find({ workspaceId });
 
     res.json(items);
   } catch (error) {
-    console.error("Fetch inventory error:", error);
+    console.error("Get inventory error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

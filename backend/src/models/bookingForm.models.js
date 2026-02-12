@@ -13,22 +13,17 @@ const bookingFormSchema = new mongoose.Schema(
       ref: "Form",
       required: true,
     },
-
-    // ✅ PUBLIC ID (used in /form link)
     publicId: {
       type: String,
       unique: true,
       default: () => nanoid(12),
     },
-
     status: {
       type: String,
       enum: ["PENDING", "COMPLETED"],
       default: "PENDING",
     },
-    responseData: {
-      type: Object,
-    },
+    responseData: Object,
     submittedAt: Date,
   },
   { timestamps: true }

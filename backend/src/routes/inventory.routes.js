@@ -1,12 +1,9 @@
 import express from "express";
-import {
-  createInventoryItem,
-  getInventory,
-} from "../controller/inventory.controller.js";
+import { getInventory } from "../controller/inventory.controller.js";
+import { requireAuth } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-router.post("/", createInventoryItem);
-router.get("/:workspaceId", getInventory);
+router.get("/", requireAuth, getInventory);
 
 export default router;
