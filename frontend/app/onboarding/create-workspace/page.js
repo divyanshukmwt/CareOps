@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function CreateWorkspacePage() {
+  const router = useRouter();
+
   const [form, setForm] = useState({
     name: "",
     timezone: "",
@@ -10,75 +13,72 @@ export default function CreateWorkspacePage() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const submit = async () => {
     setLoading(true);
-    setMessage("");
 
     try {
       const res = await fetch("http://localhost:4000/api/workspaces", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // 🔐 REQUIRED
         body: JSON.stringify(form),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Something went wrong");
+        alert(data.message || "Workspace creation failed");
+        setLoading(false);
+        return;
       }
 
-      setMessage("Workspace created successfully ✅");
-      setForm({ name: "", timezone: "", contactEmail: "" });
-    } catch (err) {
-      setMessage(err.message);
+      // ✅ JWT IS UPDATED BY BACKEND
+      router.push("/app/dashboard");
+    } catch (error) {
+      alert("Server error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "60px auto" }}>
-      <h2 style={{ marginBottom: "20px" }}>Create Workspace</h2>
+    <div style={{ maxWidth: 400, margin: "100px auto" }}>
+      <h1>Create Workspace</h1>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          name="name"
-          placeholder="Business Name"
-          value={form.name}
-          onChange={handleChange}
-          required
-        />
+      <input
+        name="name"
+        placeholder="Business Name"
+        value={form.name}
+        onChange={handleChange}
+      />
 
-        <input
-          name="timezone"
-          placeholder="Timezone (Asia/Kolkata)"
-          value={form.timezone}
-          onChange={handleChange}
-          required
-        />
+      <select
+        name="timezone"
+        value={form.timezone}
+        onChange={handleChange}
+      >
+        <option value="">Select Timezone</option>
+        <option value="Asia/Kolkata">Asia/Kolkata (India)</option>
+        <option value="UTC">UTC</option>
+        <option value="America/New_York">America/New_York</option>
+        <option value="Europe/London">Europe/London</option>
+      </select>
 
-        <input
-          name="contactEmail"
-          type="email"
-          placeholder="Contact Email"
-          value={form.contactEmail}
-          onChange={handleChange}
-          required
-        />
+      <input
+        name="contactEmail"
+        placeholder="Contact Email"
+        value={form.contactEmail}
+        onChange={handleChange}
+      />
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Creating..." : "Create Workspace"}
-        </button>
-      </form>
-
-      {message && <p style={{ marginTop: "15px" }}>{message}</p>}
+      <button onClick={submit} disabled={loading}>
+        {loading ? "Creating..." : "Create Workspace"}
+      </button>
     </div>
   );
 }

@@ -19,38 +19,22 @@ function LoginPage() {
     const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
     const [email, setEmail] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
     const [password, setPassword] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
-    const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
-    const handleLogin = async ()=>{
-        setLoading(true);
-        try {
-            const res = await fetch("http://localhost:4000/api/auth/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                credentials: "include",
-                body: JSON.stringify({
-                    email,
-                    password
-                })
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                alert(data.message || "Login failed");
-                setLoading(false);
-                return;
-            }
-            // ✅ Backend sets cookie, frontend only handles role
-            if (data.role === "OWNER") {
-                router.push("/app/dashboard");
-            } else {
-                router.push("/app/inbox");
-            }
-        } catch (error) {
-            alert("Something went wrong");
-        } finally{
-            setLoading(false);
-        }
+    const login = async ()=>{
+        const res = await fetch("http://localhost:4000/api/auth/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({
+                email,
+                password
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) return alert("Login failed");
+        if (!data.hasWorkspace) router.push("/onboarding/create-workspace");
+        else router.push("/app/dashboard");
     };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         style: {
@@ -62,53 +46,42 @@ function LoginPage() {
                 children: "Login"
             }, void 0, false, {
                 fileName: "[project]/app/login/page.js",
-                lineNumber: 46,
-                columnNumber: 13
+                lineNumber: 27,
+                columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
                 placeholder: "Email",
-                value: email,
-                onChange: (e)=>setEmail(e.target.value),
-                style: {
-                    width: "100%",
-                    marginBottom: 10
-                }
+                onChange: (e)=>setEmail(e.target.value)
             }, void 0, false, {
                 fileName: "[project]/app/login/page.js",
-                lineNumber: 48,
-                columnNumber: 13
+                lineNumber: 28,
+                columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
                 placeholder: "Password",
                 type: "password",
-                value: password,
-                onChange: (e)=>setPassword(e.target.value),
-                style: {
-                    width: "100%",
-                    marginBottom: 10
-                }
+                onChange: (e)=>setPassword(e.target.value)
             }, void 0, false, {
                 fileName: "[project]/app/login/page.js",
-                lineNumber: 55,
-                columnNumber: 13
+                lineNumber: 29,
+                columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                onClick: handleLogin,
-                disabled: loading,
-                children: loading ? "Logging in..." : "Login"
+                onClick: login,
+                children: "Login"
             }, void 0, false, {
                 fileName: "[project]/app/login/page.js",
-                lineNumber: 63,
-                columnNumber: 13
+                lineNumber: 30,
+                columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/login/page.js",
-        lineNumber: 45,
-        columnNumber: 9
+        lineNumber: 26,
+        columnNumber: 7
     }, this);
 }
-_s(LoginPage, "FRlRn5A7UrLWjqVHzBVY1krieFQ=", false, function() {
+_s(LoginPage, "IjUem0aZZUlm6NzNrISE5qnCu/Q=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]
     ];

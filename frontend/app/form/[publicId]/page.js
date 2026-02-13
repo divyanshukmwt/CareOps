@@ -1,134 +1,90 @@
 "use client";
+
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
-export default function FormsPage() {
-  const [forms, setForms] = useState([]);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+export default function PublicFormPage() {
+  const { publicId } = useParams();
 
-  const [fields, setFields] = useState([]);
-  const [fieldLabel, setFieldLabel] = useState("");
-  const [fieldType, setFieldType] = useState("text");
-  const [required, setRequired] = useState(false);
-
-  const loadForms = async () => {
-    const res = await fetch("http://localhost:4000/api/forms", {
-      credentials: "include",
-    });
-    const data = await res.json();
-    setForms(data);
-  };
+  const [form, setForm] = useState(null);
+  const [responses, setResponses] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    loadForms();
-  }, []);
+    fetch(`http://localhost:4000/api/public/form/${publicId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.form) {
+          setForm(data.form);
+        } else {
+          setError("Form not found");
+        }
+      })
+      .catch(() => setError("Server error"));
+  }, [publicId]);
 
-  const addField = () => {
-    if (!fieldLabel) return;
-
-    setFields([
-      ...fields,
-      { label: fieldLabel, type: fieldType, required },
-    ]);
-
-    setFieldLabel("");
-    setRequired(false);
-    setFieldType("text");
+  const handleChange = (label, value) => {
+    setResponses((prev) => ({ ...prev, [label]: value }));
   };
 
-  const createForm = async () => {
-    const res = await fetch("http://localhost:4000/api/forms", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        description,
-        fields,
-      }),
-    });
+  const submitForm = async () => {
+    const res = await fetch(
+      `http://localhost:4000/api/public/form/${publicId}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(responses),
+      }
+    );
 
     if (!res.ok) {
-      alert("Failed to create form");
+      setError("Submission failed");
       return;
     }
 
-    setTitle("");
-    setDescription("");
-    setFields([]);
-    loadForms();
+    setSubmitted(true);
   };
 
+  if (submitted) {
+    return (
+      <div style={{ padding: 40 }}>
+        <h2>✅ Form submitted</h2>
+        <p>Thank you for completing the form.</p>
+      </div>
+    );
+  }
+
+  if (error) return <p>{error}</p>;
+  if (!form) return <p>Loading...</p>;
+
   return (
-    <div>
-      <h1>Forms</h1>
+    <div style={{ maxWidth: 500, margin: "40px auto" }}>
+      <h2>{form.title}</h2>
+      <p>{form.description}</p>
 
-      <h3>Create New Form</h3>
+      {form.fields.map((field, i) => (
+        <div key={i} style={{ marginBottom: 12 }}>
+          <label>{field.label}</label>
 
-      <input
-        placeholder="Form title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-
-      <input
-        placeholder="Description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-      />
-
-      <hr />
-
-      <h4>Add Field</h4>
-
-      <input
-        placeholder="Field label"
-        value={fieldLabel}
-        onChange={(e) => setFieldLabel(e.target.value)}
-      />
-
-      <select
-        value={fieldType}
-        onChange={(e) => setFieldType(e.target.value)}
-      >
-        <option value="text">Text</option>
-        <option value="textarea">Textarea</option>
-        <option value="number">Number</option>
-        <option value="date">Date</option>
-        <option value="checkbox">Checkbox</option>
-      </select>
-
-      <label>
-        <input
-          type="checkbox"
-          checked={required}
-          onChange={(e) => setRequired(e.target.checked)}
-        />
-        Required
-      </label>
-
-      <button onClick={addField}>Add Field</button>
-
-      <ul>
-        {fields.map((f, i) => (
-          <li key={i}>
-            {f.label} ({f.type}) {f.required && "*"}
-          </li>
-        ))}
-      </ul>
-
-      <button onClick={createForm}>Create Form</button>
-
-      <hr />
-
-      <h3>Existing Forms</h3>
-      {forms.map((f) => (
-        <div key={f._id}>
-          <strong>{f.title}</strong>
-          <p>{f.description}</p>
-          <small>{f.fields.length} fields</small>
+          {field.type === "textarea" ? (
+            <textarea
+              onChange={(e) =>
+                handleChange(field.label, e.target.value)
+              }
+            />
+          ) : (
+            <input
+              type={field.type}
+              onChange={(e) =>
+                handleChange(field.label, e.target.value)
+              }
+            />
+          )}
         </div>
       ))}
+
+      <button onClick={submitForm}>Submit</button>
     </div>
   );
 }

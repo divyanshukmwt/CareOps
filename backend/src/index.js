@@ -17,6 +17,8 @@ import calendarRoutes from "./routes/calendar.routes.js";
 import formRoutes from "./routes/form.routes.js";
 import inventoryRoutes from "./routes/inventory.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import staffRoutes from "./routes/staff.routes.js";
+
 
 dotenv.config();
 connectDB();
@@ -60,6 +62,7 @@ app.use("/api/bookings", bookingStatusRoutes);
 app.use("/api/calendar", calendarRoutes);
 app.use("/api/forms", formRoutes);
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/staff", staffRoutes);
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {

@@ -2,12 +2,9 @@ import Workspace from "../models/workspace.models.js";
 import Contact from "../models/contact.models.js";
 import Conversation from "../models/conversation.models.js";
 import Message from "../models/message.models.js";
+import Form from "../models/form.models.js";
 import { io } from "../index.js";
 
-/**
- * PUBLIC: Submit contact form
- * URL: /f/:workspacePublicId
- */
 export const submitContactForm = async (req, res) => {
   try {
     const { workspacePublicId } = req.params;
@@ -17,7 +14,6 @@ export const submitContactForm = async (req, res) => {
       return res.status(400).json({ message: "Name is required" });
     }
 
-    // 🔍 LOOKUP WORKSPACE
     const workspace = await Workspace.findOne({
       publicId: workspacePublicId,
     });
@@ -26,7 +22,6 @@ export const submitContactForm = async (req, res) => {
       return res.status(404).json({ message: "Workspace not found" });
     }
 
-    // 1️⃣ Create contact (INTERNAL workspaceId)
     const contact = await Contact.create({
       workspaceId: workspace._id,
       name,
@@ -34,21 +29,17 @@ export const submitContactForm = async (req, res) => {
       phone,
     });
 
-    // 2️⃣ Create conversation
     const conversation = await Conversation.create({
       workspaceId: workspace._id,
       contactId: contact._id,
     });
 
-    // 3️⃣ System welcome message
     await Message.create({
       conversationId: conversation._id,
       sender: "SYSTEM",
-      content:
-        "Thanks for reaching out! Our team will get back to you shortly.",
+      content: "Thanks for reaching out! Our team will get back to you shortly.",
     });
 
-    // 4️⃣ Optional customer message
     if (message) {
       await Message.create({
         conversationId: conversation._id,
@@ -57,7 +48,6 @@ export const submitContactForm = async (req, res) => {
       });
     }
 
-    // 5️⃣ Real-time dashboard update
     io.to(workspace._id.toString()).emit("dashboard:update");
 
     res.status(201).json({
@@ -68,3 +58,19 @@ export const submitContactForm = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const getPublicForms = async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+
+    const forms = await Form.find({ workspaceId }).select(
+      "_id title description"
+    );
+
+    res.json(forms);
+  } catch (error) {
+    console.error("Public forms error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+  

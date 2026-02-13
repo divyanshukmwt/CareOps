@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { nanoid } from "nanoid";
 
 const workspaceSchema = new mongoose.Schema(
   {
@@ -15,20 +14,21 @@ const workspaceSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    isActive: {
-      type: Boolean,
-      default: false,
+
+    // ✅ REQUIRED OWNER
+    ownerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
     },
 
-    // ✅ PUBLIC ID (used in /f and /b links)
-    publicId: {
-      type: String,
-      unique: true,
-      default: () => nanoid(10),
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   { timestamps: true }
 );
 
-const Workspace = mongoose.model("Workspace", workspaceSchema);
-export default Workspace;
+export default mongoose.model("Workspace", workspaceSchema);

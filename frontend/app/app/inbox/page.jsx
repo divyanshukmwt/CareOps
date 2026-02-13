@@ -8,7 +8,6 @@ export default function InboxPage() {
   const [messages, setMessages] = useState([]);
   const [reply, setReply] = useState("");
 
-  // Load conversations
   useEffect(() => {
     fetch("http://localhost:4000/api/inbox", {
       credentials: "include",
@@ -17,7 +16,6 @@ export default function InboxPage() {
       .then(setConversations);
   }, []);
 
-  // Load messages
   const openConversation = async (conv) => {
     setSelectedConv(conv);
 
@@ -25,14 +23,10 @@ export default function InboxPage() {
       `http://localhost:4000/api/inbox/conversation/${conv.conversationId}`,
       { credentials: "include" }
     );
-    const data = await res.json();
-    setMessages(data);
+    setMessages(await res.json());
   };
 
-  // Send reply
   const sendReply = async () => {
-    if (!reply) return;
-
     await fetch(
       `http://localhost:4000/api/inbox/conversation/${selectedConv.conversationId}/reply`,
       {
@@ -42,67 +36,31 @@ export default function InboxPage() {
         body: JSON.stringify({ message: reply }),
       }
     );
-
     setReply("");
     openConversation(selectedConv);
   };
 
   return (
     <div style={{ display: "flex", height: "80vh" }}>
-      {/* LEFT */}
       <div style={{ width: "30%", borderRight: "1px solid #ccc", padding: 10 }}>
         <h3>Inbox</h3>
-        {conversations.map((c) => (
-          <div
-            key={c.conversationId}
-            onClick={() => openConversation(c)}
-            style={{
-              padding: 10,
-              cursor: "pointer",
-              background:
-                selectedConv?.conversationId === c.conversationId
-                  ? "#eee"
-                  : "transparent",
-            }}
-          >
+        {conversations.map(c => (
+          <div key={c.conversationId} onClick={() => openConversation(c)}>
             <strong>{c.contact?.name}</strong>
-            <p style={{ fontSize: 12 }}>{c.lastMessage?.content}</p>
+            <p>{c.lastMessage?.content}</p>
           </div>
         ))}
       </div>
 
-      {/* RIGHT */}
       <div style={{ width: "70%", padding: 10 }}>
-        {!selectedConv ? (
-          <p>Select a conversation</p>
-        ) : (
+        {messages.map(m => (
+          <p key={m._id}><b>{m.sender}</b>: {m.content}</p>
+        ))}
+
+        {selectedConv && (
           <>
-            <h4>Conversation</h4>
-
-            <div
-              style={{
-                border: "1px solid #ddd",
-                height: 300,
-                overflowY: "auto",
-                padding: 10,
-              }}
-            >
-              {messages.map((m) => (
-                <p key={m._id}>
-                  <strong>{m.sender}:</strong> {m.content}
-                </p>
-              ))}
-            </div>
-
-            <div style={{ marginTop: 10 }}>
-              <input
-                value={reply}
-                onChange={(e) => setReply(e.target.value)}
-                placeholder="Type reply..."
-                style={{ width: "80%" }}
-              />
-              <button onClick={sendReply}>Send</button>
-            </div>
+            <input value={reply} onChange={e => setReply(e.target.value)} />
+            <button onClick={sendReply}>Send</button>
           </>
         )}
       </div>

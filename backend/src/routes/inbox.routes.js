@@ -4,14 +4,14 @@ import {
   getConversationMessages,
   replyToConversation,
 } from "../controller/inbox.controller.js";
+import { requireAuth } from "../middleware/requireauth.js";
 
 const router = express.Router();
 
-// ✅ Specific routes FIRST
+router.use(requireAuth);
+
+router.get("/", getInbox);
 router.get("/conversation/:conversationId", getConversationMessages);
 router.post("/conversation/:conversationId/reply", replyToConversation);
-
-// ✅ Generic route LAST
-router.get("/:workspaceId", getInbox);
 
 export default router;

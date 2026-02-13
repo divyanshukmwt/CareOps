@@ -2,10 +2,7 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-    },
+    name: { type: String, required: true },
 
     email: {
       type: String,
@@ -13,21 +10,18 @@ const userSchema = new mongoose.Schema(
       unique: true,
     },
 
-    password: {
-      type: String,
-      required: true,
-    },
+    password: { type: String, required: true },
 
     role: {
       type: String,
       enum: ["OWNER", "STAFF"],
-      required: true,
+      default: "OWNER",
     },
 
     workspaceId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Workspace",
-      required: true,
+      default: null,
     },
   },
   { timestamps: true }

@@ -2,6 +2,8 @@
   "compilerOptions": {
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "allowJs": true,
+    "checkJs": false
   }
 }

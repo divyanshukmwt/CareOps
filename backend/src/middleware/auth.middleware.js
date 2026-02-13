@@ -1,17 +1,13 @@
-import jwt from "jsonwebtoken";
+  import jwt from "jsonwebtoken";
 
-export const requireAuth = (req, res, next) => {
-  const token = req.cookies.careops_token;
+  export const requireAuth = (req, res, next) => {
+    const token = req.cookies.careops_token;
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
 
-  if (!token) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: "Invalid token" });
-  }
-};
+    try {
+      req.user = jwt.verify(token, process.env.JWT_SECRET);
+      next();
+    } catch {
+      res.status(401).json({ message: "Invalid token" });
+    }
+  };

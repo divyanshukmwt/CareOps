@@ -17,15 +17,53 @@ var _s = __turbopack_context__.k.signature();
 function PublicBookingPage() {
     _s();
     const { workspaceId } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useParams"])();
+    const [forms, setForms] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
+    const [formId, setFormId] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
     const [name, setName] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
     const [email, setEmail] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
-    const [serviceName, setServiceName] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("Initial Consultation");
     const [date, setDate] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
     const [time, setTime] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
+    const [loadingForms, setLoadingForms] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(true);
     const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [success, setSuccess] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [error, setError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
-    const submitBooking = async ()=>{
+    /* ===============================
+     LOAD FORMS SAFELY
+  ================================ */ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "PublicBookingPage.useEffect": ()=>{
+            setLoadingForms(true);
+            setError("");
+            fetch(`http://localhost:4000/api/public/forms/${workspaceId}`).then({
+                "PublicBookingPage.useEffect": async (res)=>{
+                    const data = await res.json();
+                    // ✅ FORCE ARRAY SAFETY
+                    if (Array.isArray(data)) {
+                        setForms(data);
+                        if (data.length > 0) setFormId(data[0]._id);
+                    } else {
+                        setForms([]);
+                        setError(data.message || "No forms available");
+                    }
+                }
+            }["PublicBookingPage.useEffect"]).catch({
+                "PublicBookingPage.useEffect": ()=>{
+                    setForms([]);
+                    setError("Failed to load forms");
+                }
+            }["PublicBookingPage.useEffect"]).finally({
+                "PublicBookingPage.useEffect": ()=>setLoadingForms(false)
+            }["PublicBookingPage.useEffect"]);
+        }
+    }["PublicBookingPage.useEffect"], [
+        workspaceId
+    ]);
+    /* ===============================
+     SUBMIT BOOKING
+  ================================ */ const submitBooking = async ()=>{
+        if (!formId) {
+            setError("Please select a form");
+            return;
+        }
         setLoading(true);
         setError("");
         const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
@@ -39,9 +77,10 @@ function PublicBookingPage() {
                     workspaceId,
                     name,
                     email,
-                    serviceName,
+                    serviceName: "Booking",
                     scheduledAt,
-                    durationMinutes: 60
+                    durationMinutes: 60,
+                    formId
                 })
             });
             const data = await res.json();
@@ -50,164 +89,189 @@ function PublicBookingPage() {
                 return;
             }
             setSuccess(true);
-        } catch (err) {
+        } catch  {
             setError("Server error");
         } finally{
             setLoading(false);
         }
     };
-    if (success) {
+    /* ===============================
+     UI STATES
+  ================================ */ if (success) {
         return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-            style: {
-                padding: 40
-            },
+            style: styles.container,
             children: [
-                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                     children: "✅ Booking Confirmed"
                 }, void 0, false, {
                     fileName: "[project]/app/b/[workspaceId]/page.js",
-                    lineNumber: 58,
-                    columnNumber: 17
+                    lineNumber: 99,
+                    columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                    children: "Please check your email or messages for next steps."
+                    children: "You’ll receive a form link shortly."
                 }, void 0, false, {
                     fileName: "[project]/app/b/[workspaceId]/page.js",
-                    lineNumber: 59,
-                    columnNumber: 17
+                    lineNumber: 100,
+                    columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/app/b/[workspaceId]/page.js",
-            lineNumber: 57,
-            columnNumber: 13
+            lineNumber: 98,
+            columnNumber: 7
         }, this);
     }
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-        style: {
-            maxWidth: 500,
-            margin: "50px auto"
-        },
+        style: styles.container,
         children: [
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                style: {
+                    marginBottom: 20
+                },
                 children: "Book an Appointment"
             }, void 0, false, {
                 fileName: "[project]/app/b/[workspaceId]/page.js",
-                lineNumber: 66,
-                columnNumber: 13
+                lineNumber: 107,
+                columnNumber: 7
             }, this),
             error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                style: {
-                    color: "red"
-                },
+                style: styles.error,
                 children: error
             }, void 0, false, {
                 fileName: "[project]/app/b/[workspaceId]/page.js",
-                lineNumber: 68,
-                columnNumber: 23
+                lineNumber: 109,
+                columnNumber: 17
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                style: styles.input,
                 placeholder: "Your name",
                 value: name,
-                onChange: (e)=>setName(e.target.value),
-                style: {
-                    width: "100%",
-                    marginBottom: 10
-                }
+                onChange: (e)=>setName(e.target.value)
             }, void 0, false, {
                 fileName: "[project]/app/b/[workspaceId]/page.js",
-                lineNumber: 70,
-                columnNumber: 13
+                lineNumber: 111,
+                columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                style: styles.input,
                 placeholder: "Your email",
                 value: email,
-                onChange: (e)=>setEmail(e.target.value),
-                style: {
-                    width: "100%",
-                    marginBottom: 10
-                }
+                onChange: (e)=>setEmail(e.target.value)
             }, void 0, false, {
                 fileName: "[project]/app/b/[workspaceId]/page.js",
-                lineNumber: 77,
-                columnNumber: 13
+                lineNumber: 118,
+                columnNumber: 7
             }, this),
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
-                value: serviceName,
-                onChange: (e)=>setServiceName(e.target.value),
-                style: {
-                    width: "100%",
-                    marginBottom: 10
-                },
-                children: [
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
-                        children: "Initial Consultation"
-                    }, void 0, false, {
-                        fileName: "[project]/app/b/[workspaceId]/page.js",
-                        lineNumber: 89,
-                        columnNumber: 17
-                    }, this),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
-                        children: "Follow-up Session"
-                    }, void 0, false, {
-                        fileName: "[project]/app/b/[workspaceId]/page.js",
-                        lineNumber: 90,
-                        columnNumber: 17
-                    }, this)
-                ]
-            }, void 0, true, {
+            loadingForms ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                children: "Loading forms…"
+            }, void 0, false, {
                 fileName: "[project]/app/b/[workspaceId]/page.js",
-                lineNumber: 84,
-                columnNumber: 13
+                lineNumber: 126,
+                columnNumber: 9
+            }, this) : forms.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                style: styles.error,
+                children: "No forms available"
+            }, void 0, false, {
+                fileName: "[project]/app/b/[workspaceId]/page.js",
+                lineNumber: 128,
+                columnNumber: 9
+            }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
+                style: styles.input,
+                value: formId,
+                onChange: (e)=>setFormId(e.target.value),
+                children: forms.map((f)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                        value: f._id,
+                        children: f.title
+                    }, f._id, false, {
+                        fileName: "[project]/app/b/[workspaceId]/page.js",
+                        lineNumber: 136,
+                        columnNumber: 13
+                    }, this))
+            }, void 0, false, {
+                fileName: "[project]/app/b/[workspaceId]/page.js",
+                lineNumber: 130,
+                columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                style: styles.input,
                 type: "date",
                 value: date,
-                onChange: (e)=>setDate(e.target.value),
-                style: {
-                    width: "100%",
-                    marginBottom: 10
-                }
+                onChange: (e)=>setDate(e.target.value)
             }, void 0, false, {
                 fileName: "[project]/app/b/[workspaceId]/page.js",
-                lineNumber: 93,
-                columnNumber: 13
+                lineNumber: 143,
+                columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                style: styles.input,
                 type: "time",
                 value: time,
-                onChange: (e)=>setTime(e.target.value),
-                style: {
-                    width: "100%",
-                    marginBottom: 10
-                }
+                onChange: (e)=>setTime(e.target.value)
             }, void 0, false, {
                 fileName: "[project]/app/b/[workspaceId]/page.js",
-                lineNumber: 100,
-                columnNumber: 13
+                lineNumber: 150,
+                columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                style: styles.button,
                 onClick: submitBooking,
                 disabled: loading,
-                children: loading ? "Booking..." : "Confirm Booking"
+                children: loading ? "Booking…" : "Confirm Booking"
             }, void 0, false, {
                 fileName: "[project]/app/b/[workspaceId]/page.js",
-                lineNumber: 107,
-                columnNumber: 13
+                lineNumber: 157,
+                columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/b/[workspaceId]/page.js",
-        lineNumber: 65,
-        columnNumber: 9
+        lineNumber: 106,
+        columnNumber: 5
     }, this);
 }
-_s(PublicBookingPage, "HHXAXQ0q9Kps2EqPvuOpKEPF8io=", false, function() {
+_s(PublicBookingPage, "5I0nqACYhD3cgakqVi3QT7F0MgM=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useParams"]
     ];
 });
 _c = PublicBookingPage;
+/* ===============================
+   STYLES
+================================ */ const styles = {
+    container: {
+        maxWidth: 420,
+        margin: "60px auto",
+        padding: 20,
+        background: "#111",
+        borderRadius: 10,
+        color: "#fff",
+        fontFamily: "sans-serif"
+    },
+    input: {
+        width: "100%",
+        padding: "10px",
+        marginBottom: "12px",
+        borderRadius: "6px",
+        border: "1px solid #444",
+        background: "#1c1c1c",
+        color: "#fff"
+    },
+    button: {
+        width: "100%",
+        padding: "10px",
+        borderRadius: "6px",
+        border: "none",
+        background: "#4f46e5",
+        color: "#fff",
+        cursor: "pointer",
+        fontWeight: "bold"
+    },
+    error: {
+        color: "#ff6b6b",
+        marginBottom: 10
+    }
+};
 var _c;
 __turbopack_context__.k.register(_c, "PublicBookingPage");
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {

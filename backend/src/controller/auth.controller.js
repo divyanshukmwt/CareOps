@@ -1,44 +1,35 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
 import User from "../models/user.models.js";
-import Workspace from "../models/workspace.models.js";
+import AllowedStaff from "../models/allowedStaff.models.js";
 
-export const registerOwner = async (req, res) => {
+export const register = async (req, res) => {
   try {
-    const { name, email, password, workspaceName, timezone, contactEmail } =
-      req.body;
+    const { name, email, password } = req.body;
 
-    if (!name || !email || !password || !workspaceName || !timezone) {
-      return res.status(400).json({ message: "Missing required fields" });
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields required" });
     }
 
-    const existing = await User.findOne({ email });
-    if (existing) {
+    const exists = await User.findOne({ email });
+    if (exists) {
       return res.status(400).json({ message: "Email already exists" });
     }
 
-    const workspace = await Workspace.create({
-      name: workspaceName,
-      timezone,
-      contactEmail,
-      isActive: true,
-    });
+    const staffEntry = await AllowedStaff.findOne({ email });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(password, 10);
 
     await User.create({
       name,
       email,
-      password: hashedPassword,
-      role: "OWNER",
-      workspaceId: workspace._id,
+      password: hashed,
+      role: staffEntry ? "STAFF" : "OWNER",
+      workspaceId: staffEntry ? staffEntry.workspaceId : null,
     });
 
-    res.status(201).json({
-      message: "Workspace created successfully",
-    });
-  } catch (error) {
+    res.status(201).json({ message: "Registered successfully" });
+  } catch {
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -48,14 +39,10 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ message: "Invalid credentials" });
 
     const token = jwt.sign(
       {
@@ -67,21 +54,19 @@ export const login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // ✅ SET COOKIE
     res.cookie("careops_token", token, {
       httpOnly: true,
       sameSite: "lax",
     });
 
     res.json({
-      message: "Login successful",
       role: user.role,
+      hasWorkspace: !!user.workspaceId,
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 export const logout = async (req, res) => {
   res.clearCookie("careops_token");
