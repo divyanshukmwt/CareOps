@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 22, "column": 0}, "map": {"version":3,"sources":["file:///C:/01.%20frontend/frontend%20domination/CareOps/frontend/app/app/dashboard/page.jsx"],"sourcesContent":["export default function Dashboard() {\r\n  return <h1>Owner Dashboard</h1>;\r\n}\r\n"],"names":[],"mappings":";;;;;;AAAe,SAAS;IACtB,qBAAO,8OAAC;kBAAG;;;;;;AACb"}}]
-}

@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 18, "column": 0}, "map": {"version":3,"sources":["file:///C:/01.%20frontend/frontend%20domination/CareOps/frontend/app/page.js"],"sourcesContent":["export default function HomePage() {\n  return (\n    <div style={{ padding: 40 }}>\n      <h1>CareOps</h1>\n      <p>Unified operations platform for service businesses</p>\n\n      <div style={{ marginTop: 20 }}>\n        <a href=\"/login\">Login</a>\n        <br />\n        <a href=\"/register\">Create Workspace</a>\n      </div>\n    </div>\n  );\n}\n"],"names":[],"mappings":";;;;;;AAAe,SAAS;IACtB,qBACE,8OAAC;QAAI,OAAO;YAAE,SAAS;QAAG;;0BACxB,8OAAC;0BAAG;;;;;;0BACJ,8OAAC;0BAAE;;;;;;0BAEH,8OAAC;gBAAI,OAAO;oBAAE,WAAW;gBAAG;;kCAC1B,8OAAC;wBAAE,MAAK;kCAAS;;;;;;kCACjB,8OAAC;;;;;kCACD,8OAAC;wBAAE,MAAK;kCAAY;;;;;;;;;;;;;;;;;;AAI5B"}}]
-}
