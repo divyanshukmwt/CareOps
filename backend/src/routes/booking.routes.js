@@ -1,21 +1,35 @@
-import express from "express";
-import {
-  createBooking,
-  getBookingForms,
-  completeBooking,
-} from "../controller/booking.controller.js";
-import { requireAuth } from "../middleware/auth.middleware.js";
+  import express from "express";
+  import { requireAuth } from "../middleware/auth.middleware.js";
 
-const router = express.Router();
+  import {
+    createBooking,
+    getBookingForms,
+  } from "../controller/booking.controller.js";
 
-/* PUBLIC BOOKING */
-router.post("/book", createBooking);
+  import {
+    completeBooking,
+    getBookings,
+    updateBookingStatus,
+  } from "../controller/bookingStatus.controller.js";
 
-/* ADMIN BOOKING (AUTH REQUIRED) */
-router.post("/admin/book", requireAuth, createBooking);
+  const router = express.Router();
 
-/* ADMIN */
-router.get("/:bookingId/forms", requireAuth, getBookingForms);
-router.patch("/:bookingId/complete", requireAuth, completeBooking);
+  // Admin booking
+  router.post("/admin/book", requireAuth, createBooking);
 
-export default router;
+  // Public booking
+  router.post("/book", createBooking);
+
+  // Get bookings
+  router.get("/", requireAuth, getBookings);
+
+  // Get booking forms
+  router.get("/:bookingId/forms", requireAuth, getBookingForms);
+
+  // Complete booking
+  router.patch("/:bookingId/complete", requireAuth, completeBooking);
+
+  // No-show
+  router.patch("/:bookingId/status", requireAuth, updateBookingStatus);
+
+  export default router;

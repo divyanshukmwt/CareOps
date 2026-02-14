@@ -1,15 +1,19 @@
   "use client";
-  import { apiFetch } from "@/lib/api";
   import { useEffect, useState } from "react";
 
   export default function AppLayout({ children }) {
     const [user, setUser] = useState(null);
 
 useEffect(() => {
-  apiFetch("/api/auth/me")
-    .then((data) => {
-      setUser(data);
+  fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, { cache: "no-store", credentials: "include" })
+    .then((res) => {
+      if (res.status === 304) throw new Error("Cached response, retry");
+      return res.json().then((data) => {
+        if (!res.ok) throw new Error(data?.message || "API error");
+        return data;
+      });
     })
+    .then((data) => setUser(data))
     .catch(() => {});
 }, []);
 

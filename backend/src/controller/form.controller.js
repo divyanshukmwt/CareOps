@@ -14,12 +14,26 @@ export const getPublicForm = async (req, res) => {
     }).populate("formId");
 
     if (!bookingForm) {
-      return res.status(404).json({ message: "Form not found" });
+      return res.status(404).json({ message: "Booking form not found" });
     }
 
+    // 🔴 THIS WAS MISSING
+    if (!bookingForm.formId) {
+      return res.status(410).json({
+        message: "Form no longer exists for this booking",
+      });
+    }
+
+    // Ensure responses for public forms are not cached by proxies or clients.
+    // This avoids conditional requests returning 304 with an empty body.
+    res.set({
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+    });
+
     res.json({
-      bookingFormId: bookingForm._id,
-      form: bookingForm.formId,
+      form: bookingForm.formId, // frontend expects `form`
     });
   } catch (error) {
     console.error("Get public form error:", error);
@@ -60,7 +74,6 @@ export const submitPublicForm = async (req, res) => {
 ================================ */
 export const createForm = async (req, res) => {
   try {
-    // 🔐 MUST HAVE WORKSPACE
     if (!req.user.workspaceId) {
       return res
         .status(400)
@@ -92,7 +105,6 @@ export const createForm = async (req, res) => {
 ================================ */
 export const getForms = async (req, res) => {
   try {
-    // 🔐 MUST HAVE WORKSPACE
     if (!req.user.workspaceId) {
       return res
         .status(400)

@@ -1,6 +1,5 @@
 "use client";
 
-import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 export default function StaffPage() {
@@ -10,53 +9,40 @@ export default function StaffPage() {
   const [message, setMessage] = useState("");
 
   const fetchStaff = async () => {
-    const res = await apiFetch("/api/staff/list", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/staff/list`, {
       credentials: "include",
+      cache: "no-store",
     });
+    if (res.status === 304) throw new Error("Cached response, retry");
     const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || "API error");
     setStaff(data);
   };
-
-  useEffect(() => {
-    fetchStaff();
-  }, []);
 
   const addStaff = async () => {
     if (!email) return;
 
-    const res = await apiFetch("/api/staff/add", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email, post }),
-    });
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/staff/add`, {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, post }),
+      });
+      if (res.status === 304) throw new Error("Cached response, retry");
+      const _d = await res.json();
+      if (!res.ok) throw new Error(_d?.message || "API error");
 
-    const data = await res.json();
-    if (!res.ok) {
-      setMessage(data.message || "Failed to add staff");
-      return;
+      setEmail("");
+      setPost("");
+      setMessage("✅ Staff added successfully");
+      fetchStaff();
+    } catch (err) {
+      setMessage(err.message);
     }
-
-    setEmail("");
-    setPost("");
-    setMessage("✅ Staff added successfully");
-    fetchStaff();
   };
 
-  const togglePermission = async (staffId, permission, value) => {
-    await apiFetch("/api/staff/permission", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        staffId,
-        permission,
-        value,
-      }),
-    });
-
-    fetchStaff();
-  };
 
   return (
     <div>

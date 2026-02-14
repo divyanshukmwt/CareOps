@@ -1,6 +1,5 @@
 "use client";
 
-import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
@@ -16,8 +15,14 @@ export default function InboxPage() {
 
   // Fetch inbox list
   const fetchInbox = () => {
-    apiFetch(`/api/inbox/${WORKSPACE_ID}`)
-      .then((res) => res.json())
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inbox/${WORKSPACE_ID}`, { cache: "no-store" })
+      .then((res) => {
+        if (res.status === 304) throw new Error("Cached response, retry");
+        return res.json().then((data) => {
+          if (!res.ok) throw new Error(data?.message || "API error");
+          return data;
+        });
+      })
       .then(setConversations)
       .catch(console.error);
   };
@@ -25,10 +30,14 @@ export default function InboxPage() {
   // Fetch messages
   const loadMessages = (conversationId) => {
     setSelectedConversation(conversationId);
-    apiFetch(
-      `/api/inbox/conversation/${conversationId}`
-    )
-      .then((res) => res.json())
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inbox/conversation/${conversationId}`, { cache: "no-store" })
+      .then((res) => {
+        if (res.status === 304) throw new Error("Cached response, retry");
+        return res.json().then((data) => {
+          if (!res.ok) throw new Error(data?.message || "API error");
+          return data;
+        });
+      })
       .then(setMessages)
       .catch(console.error);
   };
@@ -37,14 +46,15 @@ export default function InboxPage() {
   const sendReply = async () => {
     if (!reply || !selectedConversation) return;
 
-    await apiFetch(
-    `/api/inbox/conversation/${selectedConversation}/reply`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: reply }),
-      }
-    );
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inbox/conversation/${selectedConversation}/reply`, {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: reply }),
+    });
+    if (res.status === 304) throw new Error("Cached response, retry");
+    const _d = await res.json();
+    if (!res.ok) throw new Error(_d?.message || "API error");
 
     setReply("");
   };

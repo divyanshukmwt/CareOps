@@ -1,6 +1,5 @@
 "use client";
 
-import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
@@ -13,11 +12,13 @@ export default function DashboardPage() {
 
     const fetchStats = async () => {
         setLoading(true);
-        const res = await apiFetch("/api/dashboard/stats", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/dashboard/stats`, {
             credentials: "include",
+            cache: "no-store",
         });
-
+        if (res.status === 304) throw new Error("Cached response, retry");
         const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || "API error");
         setStats(data);
         setLoading(false);
     };

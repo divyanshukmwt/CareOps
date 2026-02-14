@@ -1,6 +1,5 @@
 "use client";
 
-import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 export default function InventoryPage() {
@@ -10,49 +9,46 @@ export default function InventoryPage() {
   const [threshold, setThreshold] = useState("");
   const [message, setMessage] = useState("");
 
-  const fetchInventory = async () => {
-    const res = await apiFetch("/api/inventory", {
+const fetchInventory = async () => {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inventory`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (res.status === 304) throw new Error("Cached response, retry");
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.message || "API error");
+  setItems(data);
+};
+
+const addOrUpdate = async () => {
+  if (!name || !quantity) return;
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inventory/upsert`, {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
+      body: JSON.stringify({
+        name,
+        quantity: Number(quantity),
+        lowStockThreshold:
+          threshold !== "" ? Number(threshold) : undefined,
+      }),
     });
+    if (res.status === 304) throw new Error("Cached response, retry");
     const data = await res.json();
-    setItems(data);
-  };
-
-  useEffect(() => {
-    fetchInventory();
-  }, []);
-
-  const addOrUpdate = async () => {
-    if (!name || !quantity) return;
-
-    const res = await apiFetch(
-      "/api/inventory/upsert",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name,
-          quantity: Number(quantity),
-          lowStockThreshold:
-            threshold !== "" ? Number(threshold) : undefined,
-        }),
-      }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setMessage(data.message || "Failed");
-      return;
-    }
+    if (!res.ok) throw new Error(data?.message || "API error");
 
     setMessage(data.message);
     setName("");
     setQuantity("");
     setThreshold("");
     fetchInventory();
-  };
+  } catch (err) {
+    setMessage(err.message);
+  }
+};
 
   return (
     <div>

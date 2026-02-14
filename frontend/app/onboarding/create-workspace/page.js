@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 export default function CreateWorkspace() {
@@ -13,16 +12,28 @@ export default function CreateWorkspace() {
   const [workspaceId, setWorkspaceId] = useState(null);
 
   useEffect(() => {
-    apiFetch("/api/auth/me").then((u) =>
-      setForm((f) => ({ ...f, contactEmail: u.email }))
-    );
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, { cache: "no-store" })
+      .then((res) => {
+        if (res.status === 304) throw new Error("Cached response, retry");
+        return res.json().then((data) => {
+          if (!res.ok) throw new Error(data?.message || "API error");
+          return data;
+        });
+      })
+      .then((u) => setForm((f) => ({ ...f, contactEmail: u.email })))
+      .catch(() => {});
   }, []);
 
   const submit = async () => {
-    const data = await apiFetch("/api/workspaces", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workspaces`, {
       method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
+    if (res.status === 304) throw new Error("Cached response, retry");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || "API error");
     setWorkspaceId(data.workspaceId);
   };
 

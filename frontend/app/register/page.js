@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
 
 export default function Register() {
   const router = useRouter();
@@ -10,10 +9,15 @@ export default function Register() {
   const [password, setPassword] = useState("");
 
   const submit = async () => {
-    await apiFetch("/api/auth/register", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
       method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),
     });
+    if (res.status === 304) throw new Error("Cached response, retry");
+    const _d = await res.json();
+    if (!res.ok) throw new Error(_d?.message || "API error");
     router.push("/onboarding/create-workspace");
   };
 

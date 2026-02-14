@@ -1,5 +1,4 @@
 "use client";
-import { apiFetch } from "@/lib/api";
 import { useState } from "react";
 
 export default function ContactPage({ params }) {
@@ -13,16 +12,18 @@ export default function ContactPage({ params }) {
   });
 
   const submit = async () => {
-    const res = await apiFetch("/api/public/contact", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/public/contact`, {
       method: "POST",
+      cache: "no-store",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...form, workspaceId }),
     });
+    if (res.status === 304) throw new Error("Cached response, retry");
+    const _d = await res.json();
+    if (!res.ok) throw new Error(_d?.message || "API error");
 
-    if (res.ok) {
-      alert("Message sent");
-      setForm({ name: "", email: "", phone: "", message: "" });
-    }
+    alert("Message sent");
+    setForm({ name: "", email: "", phone: "", message: "" });
   };
 
   return (

@@ -1,75 +1,69 @@
 import Booking from "../models/booking.models.js";
 import Inventory from "../models/inventory.models.js";
 import BookingInventory from "../models/bookingInventory.models.js";
-import { checkLowStock } from "../utils/inventoryAlert.util.js";
 
 export const completeBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const { inventoryUsage } = req.body;
-    const booking = await Booking.findById(bookingId);
+    const { inventoryUsage = [] } = req.body;
 
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
+    const booking = await Booking.findById(bookingId);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    if (["COMPLETED", "NO_SHOW"].includes(booking.status)) {
+      return res.status(400).json({ message: "Booking already closed" });
     }
 
     booking.status = "COMPLETED";
     await booking.save();
 
-    for (const item of inventoryUsage) {
-      const { inventoryId, quantityUsed } = item;
+    for (const { inventoryId, quantityUsed } of inventoryUsage) {
+      if (!quantityUsed || quantityUsed <= 0) continue;
 
       await BookingInventory.create({
-        bookingId: booking._id,
+        bookingId,
         inventoryId,
         quantityUsed,
       });
 
-      const inventoryItem = await Inventory.findById(inventoryId);
-
-      inventoryItem.quantityAvailable -= quantityUsed;
-      await inventoryItem.save();
-
-      await checkLowStock(inventoryItem, booking.workspaceId);
+      const item = await Inventory.findById(inventoryId);
+      item.quantityAvailable -= quantityUsed;
+      await item.save();
     }
 
-    res.json({ message: "Booking completed and inventory updated" });
-  } catch (error) {
-    console.error("Complete booking error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-export const getBookings = async (req, res) => {
-  try {
-    const workspaceId = req.user.workspaceId;
-
-    const bookings = await Booking.find({ workspaceId })
-      .populate("contactId")
-      .sort({ scheduledAt: 1 });
-
-    res.json(bookings);
-  } catch (error) {
-    console.error("Get bookings error:", error);
+    res.json({ message: "Booking completed" });
+  } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 };
 
-export const updateBookingStatus = async (req, res) => {
+export const markNoShow = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const { status } = req.body;
 
     const booking = await Booking.findById(bookingId);
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    if (["COMPLETED", "NO_SHOW"].includes(booking.status)) {
+      return res.status(400).json({ message: "Booking already closed" });
     }
 
-    booking.status = status;
+    booking.status = "NO_SHOW";
     await booking.save();
 
-    res.json({ message: "Status updated" });
-  } catch (error) {
-    console.error("Update booking status error:", error);
+    res.json({ message: "Marked as no-show" });
+  } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const getBookings = async (req, res) => {
+  const bookings = await Booking.find({ workspaceId: req.user.workspaceId })
+    .populate("contactId")
+    .sort({ scheduledAt: 1 });
+
+  res.json(bookings);
+};
+
+/* ✅ ALIAS FOR ROUTES (IMPORTANT) */
+export const updateBookingStatus = markNoShow;

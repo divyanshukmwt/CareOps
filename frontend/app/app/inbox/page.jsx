@@ -1,6 +1,5 @@
 "use client";
 
-import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 export default function InboxPage() {
@@ -9,37 +8,51 @@ export default function InboxPage() {
   const [messages, setMessages] = useState([]);
   const [reply, setReply] = useState("");
 
-  useEffect(() => {
-    apiFetch("/api/inbox", {
-      credentials: "include",
+useEffect(() => {
+  fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inbox`, {
+    credentials: "include",
+    cache: "no-store",
+  })
+    .then((res) => {
+      if (res.status === 304) throw new Error("Cached response, retry");
+      return res.json().then((data) => {
+        if (!res.ok) throw new Error(data?.message || "API error");
+        return data;
+      });
     })
-      .then(res => res.json())
-      .then(setConversations);
-  }, []);
+    .then(setConversations)
+    .catch(() => {});
+}, []);
 
-  const openConversation = async (conv) => {
-    setSelectedConv(conv);
+const openConversation = async (conv) => {
+  setSelectedConv(conv);
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inbox/conversation/${conv.conversationId}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (res.status === 304) throw new Error("Cached response, retry");
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.message || "API error");
+  setMessages(data);
+};
 
-    const res = await apiFetch(
-      `/api/inbox/conversation/${conv.conversationId}`,
-      { credentials: "include" }
-    );
-    setMessages(await res.json());
-  };
+const sendReply = async () => {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inbox/conversation/${selectedConv.conversationId}/reply`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: reply }),
+  });
+  if (res.status === 304) throw new Error("Cached response, retry");
+  const _d = await res.json();
+  if (!res.ok) throw new Error(_d?.message || "API error");
 
-  const sendReply = async () => {
-    await apiFetch(
-      `/api/inbox/conversation/${selectedConv.conversationId}/reply`,
-      {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: reply }),
-      }
-    );
-    setReply("");
-    openConversation(selectedConv);
-  };
+  setReply("");
+  openConversation(selectedConv);
+};
+
+
 
   return (
     <div style={{ display: "flex", height: "80vh" }}>

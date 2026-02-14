@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,44 +13,57 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   const checkStaff = async () => {
-    const res = await apiFetch("/api/auth/staff/check", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, workspaceId }),
-    });
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/staff/check`, {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, workspaceId }),
+      });
+      if (res.status === 304) throw new Error("Cached response, retry");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "API error");
 
-    const data = await res.json();
-    if (!res.ok) return alert(data.message);
-
-    setStep(data.hasPassword ? "LOGIN" : "SET_PASSWORD");
+      setStep(data.hasPassword ? "LOGIN" : "SET_PASSWORD");
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   const login = async () => {
-    const payload =
-      role === "OWNER"
-        ? { email, password }
-        : { email, password, workspaceId };
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(
+          role === "OWNER"
+            ? { email, password }
+            : { email, password, workspaceId }
+        ),
+      });
+      if (res.status === 304) throw new Error("Cached response, retry");
+      const _d = await res.json();
+      if (!res.ok) throw new Error(_d?.message || "API error");
 
-    const res = await apiFetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) return alert("Login failed");
-    router.push("/app/dashboard");
+      router.push("/app/dashboard");
+    } catch (err) {
+      alert("Login failed");
+    }
   };
 
 
   const setStaffPassword = async () => {
-    const res = await apiFetch("/api/auth/staff/set-password", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/staff/set-password`, {
       method: "POST",
+      cache: "no-store",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ email, password, workspaceId }),
     });
-
+    if (res.status === 304) return alert("Failed");
+    const _d = await res.json();
     if (!res.ok) return alert("Failed");
     router.push("/app/dashboard");
   };

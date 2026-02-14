@@ -1,5 +1,4 @@
 "use client";
-import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 export default function FormsPage() {
@@ -12,13 +11,16 @@ export default function FormsPage() {
   const [fieldType, setFieldType] = useState("text");
   const [required, setRequired] = useState(false);
 
-  const loadForms = async () => {
-    const res = await apiFetch("/api/forms", {
-      credentials: "include",
-    });
-    const data = await res.json();
-    setForms(data);
-  };
+const loadForms = async () => {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/forms`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (res.status === 304) throw new Error("Cached response, retry");
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.message || "API error");
+  setForms(data);
+};
 
   useEffect(() => {
     loadForms();
@@ -37,28 +39,27 @@ export default function FormsPage() {
     setFieldType("text");
   };
 
-  const createForm = async () => {
-    const res = await apiFetch("/api/forms", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        description,
-        fields,
-      }),
-    });
+const createForm = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/forms`, {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, fields }),
+      });
+      if (res.status === 304) throw new Error("Cached response, retry");
+      const _d = await res.json();
+      if (!res.ok) throw new Error(_d?.message || "API error");
 
-    if (!res.ok) {
+      setTitle("");
+      setDescription("");
+      setFields([]);
+      loadForms();
+    } catch {
       alert("Failed to create form");
-      return;
     }
-
-    setTitle("");
-    setDescription("");
-    setFields([]);
-    loadForms();
-  };
+};
 
   return (
     <div>

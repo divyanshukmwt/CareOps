@@ -1,17 +1,25 @@
 "use client";
-import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
 
-  useEffect(() => {
-    apiFetch("/api/dashboard/stats", {
-      credentials: "include",
+useEffect(() => {
+  fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/dashboard/stats`, {
+    credentials: "include",
+    cache: "no-store",
+  })
+    .then((res) => {
+      if (res.status === 304) throw new Error("Cached response, retry");
+      return res.json().then((data) => {
+        if (!res.ok) throw new Error(data?.message || "API error");
+        return data;
+      });
     })
-      .then(res => res.json())
-      .then(setStats);
-  }, []);
+    .then(setStats)
+    .catch(() => {});
+}, []);
+
 
   if (!stats) return <p>Loading...</p>;
 

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { apiFetch } from "@/lib/api";
 
 export default function PublicBookingPage() {
   const { workspaceId } = useParams();
@@ -21,69 +20,67 @@ export default function PublicBookingPage() {
   const [success, setSuccess] = useState(false);
 
   /* ================= LOAD FORMS ================= */
-  useEffect(() => {
-    if (!workspaceId) return;
+useEffect(() => {
+  if (!workspaceId) return;
 
-    setLoadingForms(true);
-    setError("");
+  setLoadingForms(true);
+  setError("");
 
-    apiFetch(`/api/public/forms/${workspaceId}`)
-      .then(async (res) => {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setForms(data);
-          if (data.length > 0) setFormId(data[0]._id);
-        } else {
-          setError(data.message || "No forms available");
-        }
-      })
-      .catch(() => setError("Failed to load forms"))
-      .finally(() => setLoadingForms(false));
-  }, [workspaceId]);
+  fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/public/forms/${workspaceId}`, {
+    cache: "no-store",
+  })
+    .then((res) => {
+      if (res.status === 304) throw new Error("Cached response, retry");
+      return res.json().then((data) => {
+        if (!res.ok) throw new Error(data?.message || "API error");
+        return data;
+      });
+    })
+    .then((data) => {
+      setForms(data);
+      if (data.length > 0) setFormId(data[0]._id);
+    })
+    .catch(() => setError("Failed to load forms"))
+    .finally(() => setLoadingForms(false));
+}, [workspaceId]);
 
-  /* ================= SUBMIT BOOKING ================= */
-  const submitBooking = async () => {
-    if (!name || !email || !date || !time || !formId) {
-      setError("All fields are required");
-      return;
-    }
+const submitBooking = async () => {
+  if (!name || !email || !date || !time || !formId) {
+    setError("All fields are required");
+    return;
+  }
 
-    setLoading(true);
-    setError("");
+  setLoading(true);
+  setError("");
 
-    const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
+  const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
 
     try {
-      const res = await apiFetch(
-        "/api/bookings/book",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            workspaceId,
-            name,
-            email,
-            serviceName: "Appointment",
-            scheduledAt,
-            formId,
-          }),
-        }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message || "Booking failed");
-        return;
-      }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bookings/book`, {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceId,
+          name,
+          email,
+          serviceName: "Appointment",
+          scheduledAt,
+          formId,
+        }),
+      });
+      if (res.status === 304) throw new Error("Cached response, retry");
+      const _d = await res.json();
+      if (!res.ok) throw new Error(_d?.message || "API error");
 
       setSuccess(true);
-    } catch {
-      setError("Server error");
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+};
+  
 
   /* ================= UI ================= */
   if (success) {
