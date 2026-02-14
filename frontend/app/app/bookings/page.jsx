@@ -1,119 +1,216 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [formsList, setFormsList] = useState([]);
+  const [filter, setFilter] = useState("ALL");
+  const [showCreate, setShowCreate] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    serviceName: "",
+    scheduledAt: "",
+    formId: "",
+  });
+
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [forms, setForms] = useState([]);
+  const [inventoryUsage, setInventoryUsage] = useState([]);
 
   const loadBookings = async () => {
     const res = await fetch("http://localhost:4000/api/bookings", {
       credentials: "include",
     });
-    const data = await res.json();
-    setBookings(data);
+    setBookings(await res.json());
+  };
+
+  const loadInventory = async () => {
+    const res = await fetch("http://localhost:4000/api/inventory", {
+      credentials: "include",
+    });
+    setInventory(await res.json());
+  };
+
+  const loadForms = async () => {
+    const res = await fetch("http://localhost:4000/api/forms", {
+      credentials: "include",
+    });
+    setFormsList(await res.json());
   };
 
   useEffect(() => {
     loadBookings();
+    loadInventory();
+    loadForms();
   }, []);
 
-  const updateStatus = async (bookingId, status) => {
+  const filtered = useMemo(() => {
+    if (filter === "ALL") return bookings;
+    return bookings.filter((b) => b.status === filter);
+  }, [bookings, filter]);
+
+const createBooking = async () => {
+  const res = await fetch("http://localhost:4000/api/bookings/admin/book", {  
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...formData, source: "ADMIN" }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) return alert(data.message);
+
+    setShowCreate(false);
+    setFormData({
+      name: "",
+      email: "",
+      serviceName: "",
+      scheduledAt: "",
+      formId: "",
+    });
+    loadBookings();
+  };
+
+  const viewForms = async (b) => {
+    setSelectedBooking(b);
+    const res = await fetch(
+      `http://localhost:4000/api/bookings/${b._id}/forms`,
+      { credentials: "include" }
+    );
+    setForms(await res.json());
+  };
+
+  const markCompleted = async () => {
     await fetch(
-      `http://localhost:4000/api/bookings/${bookingId}/status`,
+      `http://localhost:4000/api/bookings/${selectedBooking._id}/complete`,
       {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ inventoryUsage }),
       }
     );
+    setSelectedBooking(null);
+    setInventoryUsage([]);
     loadBookings();
-  };
-
-  const viewForms = async (booking) => {
-    setSelectedBooking(booking);
-
-    const res = await fetch(
-      `http://localhost:4000/api/bookings/${booking._id}/forms`,
-      { credentials: "include" }
-    );
-    const data = await res.json();
-    setForms(data);
+    loadInventory();
   };
 
   return (
     <div>
-      <h1>Bookings</h1>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <h1>Bookings</h1>
+        <button onClick={() => setShowCreate(true)}>➕ Create Booking</button>
+      </div>
 
-      <table border="1" cellPadding="8" width="100%">
+      <small>Mon–Fri | 10:00 AM – 6:00 PM</small>
+
+      <br /><br />
+
+      <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+        <option value="ALL">All</option>
+        <option value="PENDING">Pending</option>
+        <option value="COMPLETED">Completed</option>
+        <option value="NO_SHOW">No-show</option>
+      </select>
+
+      {showCreate && (
+        <div style={{ border: "1px solid #333", padding: 16, marginTop: 20 }}>
+          <h3>Create Booking (Admin)</h3>
+
+          <input placeholder="Name" value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+          <br />
+
+          <input placeholder="Email" value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+          <br />
+
+          <input placeholder="Service" value={formData.serviceName}
+            onChange={(e) => setFormData({ ...formData, serviceName: e.target.value })} />
+          <br />
+
+          <input type="datetime-local" value={formData.scheduledAt}
+            onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })} />
+          <br />
+
+          <select value={formData.formId}
+            onChange={(e) => setFormData({ ...formData, formId: e.target.value })}>
+            <option value="">Select Form</option>
+            {formsList.map((f) => (
+              <option key={f._id} value={f._id}>{f.title}</option>
+            ))}
+          </select>
+
+          <br /><br />
+
+          <button onClick={createBooking}>Create</button>
+          <button onClick={() => setShowCreate(false)}>Cancel</button>
+        </div>
+      )}
+
+      <table width="100%" cellPadding="10">
         <thead>
           <tr>
             <th>Customer</th>
             <th>Service</th>
             <th>Date</th>
             <th>Status</th>
+            <th>Source</th>
             <th>Forms</th>
-            <th>Actions</th>
           </tr>
         </thead>
 
         <tbody>
-          {bookings.map((b) => (
+          {filtered.map((b) => (
             <tr key={b._id}>
               <td>{b.contactId?.name}</td>
               <td>{b.serviceName}</td>
               <td>{new Date(b.scheduledAt).toLocaleString()}</td>
               <td>{b.status}</td>
+              <td>{b.source}</td>
               <td>
-                <button onClick={() => viewForms(b)}>View Forms</button>
-              </td>
-              <td>
-                <button onClick={() => updateStatus(b._id, "COMPLETED")}>
-                  Complete
-                </button>
-                <button onClick={() => updateStatus(b._id, "NO_SHOW")}>
-                  No-show
-                </button>
+                <button onClick={() => viewForms(b)}>View</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* FORMS SECTION */}
       {selectedBooking && (
         <div style={{ marginTop: 30 }}>
-          <h2>Forms for Booking</h2>
+          <h3>Forms</h3>
 
-          {forms.length === 0 ? (
-            <p>No forms linked</p>
-          ) : (
-            forms.map((f, i) => (
-              <div
-                key={i}
-                style={{
-                  border: "1px solid #ccc",
-                  padding: 10,
-                  marginBottom: 10,
-                }}
-              >
-                <strong>{f.formTitle}</strong>
-                <p>Status: {f.status}</p>
+          {forms.map((f, i) => (
+            <div key={i}>
+              <strong>{f.title}</strong>
+              {Object.entries(f.responses || {}).map(([k, v]) => (
+                <div key={k}>{k}: {String(v)}</div>
+              ))}
+            </div>
+          ))}
 
-                {f.status === "COMPLETED" && (
-                  <ul>
-                    {Object.entries(f.responses).map(([key, value]) => (
-                      <li key={key}>
-                        <strong>{key}:</strong> {String(value)}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))
-          )}
+          <h4>Inventory Used</h4>
+          {inventory.map((i) => (
+            <div key={i._id}>
+              {i.name} ({i.quantityAvailable})
+              <input type="number" min="0"
+                onChange={(e) =>
+                  setInventoryUsage((prev) => [
+                    ...prev.filter(p => p.inventoryId !== i._id),
+                    { inventoryId: i._id, quantityUsed: Number(e.target.value) },
+                  ])
+                }
+              />
+            </div>
+          ))}
+
+          <br />
+          <button onClick={markCompleted}>Mark Completed</button>
         </div>
       )}
     </div>

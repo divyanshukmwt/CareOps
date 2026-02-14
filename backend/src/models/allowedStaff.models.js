@@ -12,6 +12,18 @@ const allowedStaffSchema = new mongoose.Schema(
       ref: "Workspace",
       required: true,
     },
+
+    post: {
+      type: String,
+      default: "",
+    },
+
+    permissions: {
+      inbox: { type: Boolean, default: true },
+      bookings: { type: Boolean, default: true },
+      forms: { type: Boolean, default: false },
+      inventory: { type: Boolean, default: false },
+    },
   },
   { timestamps: true }
 );

@@ -1,6 +1,23 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 export default function AppLayout({ children }) {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    fetch("http://localhost:4000/api/auth/me", {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("ME API:", data);
+        setUser(data);
+      })
+      .catch(() => { });
+  }, []);
+
+
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
       <aside style={{ width: 220, borderRight: "1px solid #ddd", padding: 20 }}>
@@ -12,6 +29,12 @@ export default function AppLayout({ children }) {
           <a href="/app/bookings">Bookings</a><br />
           <a href="/app/forms">Forms</a><br />
           <a href="/app/inventory">Inventory</a><br />
+
+          {user?.role === "OWNER" && (
+            <>
+              <a href="/app/staff">Staff</a><br />
+            </>
+          )}
         </nav>
       </aside>
 

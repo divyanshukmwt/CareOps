@@ -1,43 +1,60 @@
 import Booking from "../models/booking.models.js";
 import Contact from "../models/contact.models.js";
+import BookingForm from "../models/bookingForm.models.js";
+import Inventory from "../models/inventory.models.js";
+import BookingInventory from "../models/bookingInventory.models.js";
 import Conversation from "../models/conversation.models.js";
 import Message from "../models/message.models.js";
-import BookingForm from "../models/bookingForm.models.js";
-import { io } from "../index.js";
+import { sendEmail } from "../utils/email.util.js";
 
-/* ===============================
-   CREATE BOOKING (PUBLIC)
-================================ */
+/* ================= SLOT RULES ================= */
+const START_HOUR = 10;
+const END_HOUR = 18;
+const ALLOWED_DAYS = [1, 2, 3, 4, 5]; // Mon–Fri
+
+const isValidSlot = (date) => {
+  const day = date.getDay();
+  const hour = date.getHours();
+
+  if (!ALLOWED_DAYS.includes(day)) return false;
+  if (hour < START_HOUR || hour >= END_HOUR) return false;
+  return true;
+};
+
+/* ================= CREATE BOOKING ================= */
 export const createBooking = async (req, res) => {
   try {
     const {
-      workspaceId,
       name,
       email,
       serviceName,
       scheduledAt,
-      durationMinutes,
-      formId, // ✅ SELECTED FORM
+      source = "PUBLIC",
+      formId,
     } = req.body;
 
-    if (
-      !workspaceId ||
-      !name ||
-      !email ||
-      !serviceName ||
-      !scheduledAt ||
-      !formId
-    ) {
+    const workspaceId =
+      source === "ADMIN" ? req.user?.workspaceId : req.body.workspaceId;
+
+    if (!workspaceId || !name || !email || !serviceName || !scheduledAt || !formId) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // 🔹 Find or create contact
+    const date = new Date(scheduledAt);
+
+    if (!isValidSlot(date)) {
+      return res.status(400).json({
+        message: "Bookings allowed Mon–Fri between 10:00 AM – 6:00 PM",
+      });
+    }
+
+    /* CONTACT */
     let contact = await Contact.findOne({ workspaceId, email });
     if (!contact) {
       contact = await Contact.create({ workspaceId, name, email });
     }
 
-    // 🔹 Find or create conversation
+    /* CONVERSATION */
     let conversation = await Conversation.findOne({
       workspaceId,
       contactId: contact._id,
@@ -50,33 +67,47 @@ export const createBooking = async (req, res) => {
       });
     }
 
-    // 🔹 Create booking
+    /* BOOKING */
     const booking = await Booking.create({
       workspaceId,
       contactId: contact._id,
       serviceName,
-      scheduledAt,
-      durationMinutes,
+      scheduledAt: date,
+      source,
+      status: "PENDING",
     });
 
-    // 🔹 Attach ONLY selected form
+    /* BOOKING FORM */
     const bookingForm = await BookingForm.create({
       bookingId: booking._id,
       formId,
     });
 
-    // 🔹 Send message with form link
+    const formLink = `${process.env.CLIENT_URL}/form/${bookingForm.publicId}`;
+
+    /* EMAIL */
+    await sendEmail({
+      to: email,
+      subject: "Your booking is confirmed",
+      html: `
+        <h2>Booking Confirmed</h2>
+        <p>Hello ${name},</p>
+        <p>Your booking for <strong>${serviceName}</strong> is confirmed.</p>
+        <p>Please complete the form:</p>
+        <a href="${formLink}">${formLink}</a>
+      `,
+    });
+
+    /* INBOX MESSAGE */
     await Message.create({
       conversationId: conversation._id,
-      sender: "SYSTEM",
-      content: `Your booking for "${serviceName}" is confirmed.\nPlease complete the form:\nhttp://localhost:3000/form/${bookingForm.publicId}`,
+      sender: process.env.SYSTEM_SENDER || "SYSTEM",
+      content: `Booking confirmed for "${serviceName}".\nForm link:\n${formLink}`,
       channel: "INTERNAL",
     });
 
-    io.to(workspaceId.toString()).emit("dashboard:update");
-
     res.status(201).json({
-      message: "Booking confirmed",
+      message: "Booking created and form sent",
       booking,
     });
   } catch (error) {
@@ -85,29 +116,56 @@ export const createBooking = async (req, res) => {
   }
 };
 
-
-/* ===============================
-   GET BOOKING FORMS (ADMIN)
-================================ */
+/* ================= GET BOOKING FORMS ================= */
 export const getBookingForms = async (req, res) => {
   try {
     const { bookingId } = req.params;
 
-    const bookingForms = await BookingForm.find({ bookingId })
-      .populate("formId", "title fields")
+    const forms = await BookingForm.find({ bookingId })
+      .populate("formId", "title")
       .sort({ createdAt: 1 });
 
-    const result = bookingForms.map((bf) => ({
-      bookingFormId: bf._id,
-      formTitle: bf.formId.title,
-      status: bf.status,
-      submittedAt: bf.submittedAt,
-      responses: bf.responseData || {},
-    }));
+    res.json(
+      forms.map((f) => ({
+        formTitle: f.formId.title,
+        status: f.status,
+        responses: f.responseData || {},
+        publicId: f.publicId,
+      }))
+    );
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
-    res.json(result);
-  } catch (error) {
-    console.error("Get booking forms error:", error);
+/* ================= COMPLETE BOOKING ================= */
+export const completeBooking = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { inventoryUsage = [] } = req.body;
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    booking.status = "COMPLETED";
+    await booking.save();
+
+    for (const item of inventoryUsage) {
+      if (!item.quantityUsed || item.quantityUsed <= 0) continue;
+
+      await BookingInventory.create({
+        bookingId,
+        inventoryId: item.inventoryId,
+        quantityUsed: item.quantityUsed,
+      });
+
+      const inv = await Inventory.findById(item.inventoryId);
+      inv.quantityAvailable -= item.quantityUsed;
+      await inv.save();
+    }
+
+    res.json({ message: "Booking completed" });
+  } catch {
     res.status(500).json({ message: "Server error" });
   }
 };

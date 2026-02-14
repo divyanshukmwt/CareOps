@@ -1,204 +1,122 @@
-"use client";
+import Booking from "../models/booking.models.js";
+import Contact from "../models/contact.models.js";
+import BookingForm from "../models/bookingForm.models.js";
+import Inventory from "../models/inventory.models.js";
+import BookingInventory from "../models/bookingInventory.models.js";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+/* ================= SLOT RULE ================= */
+const START_HOUR = 10;
+const END_HOUR = 18;
+const ALLOWED_DAYS = [1, 2, 3, 4, 5]; // Mon–Fri
 
-export default function PublicBookingPage() {
-  const { workspaceId } = useParams();
+const isValidWorkingTime = (date) => {
+  const day = date.getDay();
+  const hour = date.getHours();
+  return ALLOWED_DAYS.includes(day) && hour >= START_HOUR && hour < END_HOUR;
+};
 
-  const [forms, setForms] = useState([]);
-  const [formId, setFormId] = useState("");
+/* ================= CREATE BOOKING ================= */
+export const createBooking = async (req, res) => {
+  try {
+    const {
+      workspaceId: bodyWorkspaceId,
+      name,
+      email,
+      serviceName,
+      scheduledAt,
+      formId,
+      source = "PUBLIC",
+    } = req.body;
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
+    const workspaceId =
+      source === "ADMIN" ? req.user?.workspaceId : bodyWorkspaceId;
 
-  const [loadingForms, setLoadingForms] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
-
-  /* ===============================
-     LOAD FORMS SAFELY
-  ================================ */
-  useEffect(() => {
-    setLoadingForms(true);
-    setError("");
-
-    fetch(`http://localhost:4000/api/public/forms/${workspaceId}`)
-      .then(async (res) => {
-        const data = await res.json();
-
-        // ✅ FORCE ARRAY SAFETY
-        if (Array.isArray(data)) {
-          setForms(data);
-          if (data.length > 0) setFormId(data[0]._id);
-        } else {
-          setForms([]);
-          setError(data.message || "No forms available");
-        }
-      })
-      .catch(() => {
-        setForms([]);
-        setError("Failed to load forms");
-      })
-      .finally(() => setLoadingForms(false));
-  }, [workspaceId]);
-
-  /* ===============================
-     SUBMIT BOOKING
-  ================================ */
-  const submitBooking = async () => {
-    if (!formId) {
-      setError("Please select a form");
-      return;
+    if (!workspaceId || !name || !email || !serviceName || !scheduledAt || !formId) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
-    setLoading(true);
-    setError("");
+    const date = new Date(scheduledAt);
+    if (!isValidWorkingTime(date)) {
+      return res.status(400).json({
+        message: "Bookings allowed Mon–Fri between 10:00 AM – 6:00 PM",
+      });
+    }
 
-    const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
+    let contact = await Contact.findOne({ workspaceId, email });
+    if (!contact) {
+      contact = await Contact.create({ workspaceId, name, email });
+    }
 
-    try {
-      const res = await fetch("http://localhost:4000/api/bookings/book", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workspaceId,
-          name,
-          email,
-          serviceName: "Booking",
-          scheduledAt,
-          durationMinutes: 60,
-          formId,
-        }),
+    const booking = await Booking.create({
+      workspaceId,
+      contactId: contact._id,
+      serviceName,
+      scheduledAt: date,
+      source,
+      status: "PENDING",
+    });
+
+    await BookingForm.create({
+      bookingId: booking._id,
+      formId,
+    });
+
+    res.status(201).json({ message: "Booking created", booking });
+  } catch (error) {
+    console.error("Create booking error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* ================= GET BOOKING FORMS ================= */
+export const getBookingForms = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+
+    const forms = await BookingForm.find({ bookingId })
+      .populate("formId", "title")
+      .sort({ createdAt: 1 });
+
+    res.json(
+      forms.map((f) => ({
+        title: f.formId.title,
+        status: f.status,
+        responses: f.responseData || {},
+      }))
+    );
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* ================= COMPLETE BOOKING ================= */
+export const completeBooking = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { inventoryUsage = [] } = req.body;
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    booking.status = "COMPLETED";
+    await booking.save();
+
+    for (const item of inventoryUsage) {
+      if (!item.quantityUsed || item.quantityUsed <= 0) continue;
+
+      await BookingInventory.create({
+        bookingId,
+        inventoryId: item.inventoryId,
+        quantityUsed: item.quantityUsed,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message || "Booking failed");
-        return;
-      }
-
-      setSuccess(true);
-    } catch {
-      setError("Server error");
-    } finally {
-      setLoading(false);
+      const inv = await Inventory.findById(item.inventoryId);
+      inv.quantityAvailable -= item.quantityUsed;
+      await inv.save();
     }
-  };
 
-  /* ===============================
-     UI STATES
-  ================================ */
-  if (success) {
-    return (
-      <div style={styles.container}>
-        <h2>✅ Booking Confirmed</h2>
-        <p>You’ll receive a form link shortly.</p>
-      </div>
-    );
+    res.json({ message: "Booking completed" });
+  } catch {
+    res.status(500).json({ message: "Server error" });
   }
-
-  return (
-    <div style={styles.container}>
-      <h2 style={{ marginBottom: 20 }}>Book an Appointment</h2>
-
-      {error && <p style={styles.error}>{error}</p>}
-
-      <input
-        style={styles.input}
-        placeholder="Your name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-
-      <input
-        style={styles.input}
-        placeholder="Your email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-
-      {loadingForms ? (
-        <p>Loading forms…</p>
-      ) : forms.length === 0 ? (
-        <p style={styles.error}>No forms available</p>
-      ) : (
-        <select
-          style={styles.input}
-          value={formId}
-          onChange={(e) => setFormId(e.target.value)}
-        >
-          {forms.map((f) => (
-            <option key={f._id} value={f._id}>
-              {f.title}
-            </option>
-          ))}
-        </select>
-      )}
-
-      <input
-        style={styles.input}
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-      />
-
-      <input
-        style={styles.input}
-        type="time"
-        value={time}
-        onChange={(e) => setTime(e.target.value)}
-      />
-
-      <button
-        style={styles.button}
-        onClick={submitBooking}
-        disabled={loading}
-      >
-        {loading ? "Booking…" : "Confirm Booking"}
-      </button>
-    </div>
-  );
-}
-
-/* ===============================
-   STYLES
-================================ */
-const styles = {
-  container: {
-    maxWidth: 420,
-    margin: "60px auto",
-    padding: 20,
-    background: "#111",
-    borderRadius: 10,
-    color: "#fff",
-    fontFamily: "sans-serif",
-  },
-  input: {
-    width: "100%",
-    padding: "10px",
-    marginBottom: "12px",
-    borderRadius: "6px",
-    border: "1px solid #444",
-    background: "#1c1c1c",
-    color: "#fff",
-  },
-  button: {
-    width: "100%",
-    padding: "10px",
-    borderRadius: "6px",
-    border: "none",
-    background: "#4f46e5",
-    color: "#fff",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-  error: {
-    color: "#ff6b6b",
-    marginBottom: 10,
-  },
 };
