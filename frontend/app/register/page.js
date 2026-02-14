@@ -16,11 +16,13 @@ export default function RegisterPage() {
         body: JSON.stringify({ name, email, password }),
       });
 
-      router.push("/login");
+      // ✅ AUTO REDIRECT TO WORKSPACE
+      router.push("/onboarding/create-workspace");
     } catch (err) {
       alert(err.message);
     }
   };
+
 
   return (
     <div style={{ maxWidth: 400, margin: "100px auto" }}>

@@ -14,20 +14,14 @@ export const register = async (req, res) => {
 
     email = email.toLowerCase().trim();
 
-    // ✅ ONLY CHECK OWNER USERS
-    const exists = await User.findOne({
-      email,
-      role: "OWNER",
-      workspaceId: null,
-    });
-
+    const exists = await User.findOne({ email, role: "OWNER" });
     if (exists) {
       return res.status(400).json({ message: "Email already exists" });
     }
 
     const hashed = await bcrypt.hash(password, 10);
 
-    await User.create({
+    const user = await User.create({
       name,
       email,
       password: hashed,
@@ -36,17 +30,32 @@ export const register = async (req, res) => {
       workspaceId: null,
     });
 
-    res.status(201).json({ message: "Registered successfully" });
+    // ✅ AUTO LOGIN AFTER REGISTER
+    const token = jwt.sign(
+      { userId: user._id, role: "OWNER", workspaceId: null },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.cookie("careops_token", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    res.status(201).json({
+      message: "Registered & logged in",
+      user: {
+        email: user.email,
+        role: user.role,
+      },
+    });
   } catch (error) {
-    console.error("REGISTER ERROR 🔴:", error);
-
-    if (error.code === 11000) {
-      return res.status(400).json({ message: "Email already exists" });
-    }
-
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 /* ================= LOGIN ================= */
 export const login = async (req, res) => {

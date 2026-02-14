@@ -1,6 +1,5 @@
-import Workspace from "../models/workspace.models.js";
-import User from "../models/user.models.js";
-import jwt from "jsonwebtoken";
+import { Resend } from "resend";
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const createWorkspace = async (req, res) => {
   try {
@@ -8,18 +7,12 @@ export const createWorkspace = async (req, res) => {
     const userId = req.user.userId;
 
     if (!name || !timezone || !contactEmail) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({ message: "All fields required" });
     }
 
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
     if (user.workspaceId) {
-      return res.status(400).json({
-        message: "Workspace already exists",
-      });
+      return res.status(400).json({ message: "Workspace already exists" });
     }
 
     const workspace = await Workspace.create({
@@ -32,7 +25,7 @@ export const createWorkspace = async (req, res) => {
     user.workspaceId = workspace._id;
     await user.save();
 
-    // ✅ RE-ISSUE JWT WITH WORKSPACE ID
+    // ✅ UPDATE JWT
     const newToken = jwt.sign(
       {
         userId: user._id,
@@ -46,14 +39,29 @@ export const createWorkspace = async (req, res) => {
     res.cookie("careops_token", newToken, {
       httpOnly: true,
       sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    // ✅ EMAIL WORKSPACE ID TO OWNER
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: user.email,
+      subject: "Your CareOps Workspace ID",
+      html: `
+        <h2>Workspace Created 🎉</h2>
+        <p><strong>Workspace Name:</strong> ${workspace.name}</p>
+        <p><strong>Workspace ID:</strong></p>
+        <code style="font-size:16px">${workspace._id}</code>
+        <p>Share this ID with your staff to login.</p>
+      `,
     });
 
     res.status(201).json({
-      message: "Workspace created successfully",
-      workspace,
+      message: "Workspace created",
+      workspaceId: workspace._id,
     });
-  } catch (error) {
-    console.error("Create workspace error:", error);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
