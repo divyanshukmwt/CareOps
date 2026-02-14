@@ -1,34 +1,34 @@
-import mongoose from "mongoose";
+  import mongoose from "mongoose";
 
-const workspaceSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-    },
-    timezone: {
-      type: String,
-      required: true,
-    },
-    contactEmail: {
-      type: String,
-      required: true,
-    },
+  const workspaceSchema = new mongoose.Schema(
+    {
+      name: {
+        type: String,
+        required: true,
+      },
+      timezone: {
+        type: String,
+        required: true,
+      },
+      contactEmail: {
+        type: String,
+        required: true,
+      },
 
-    // ✅ REQUIRED OWNER
-    ownerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      unique: true,
-    },
+      // ✅ REQUIRED OWNER
+      ownerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+        unique: true,
+      },
 
-    isActive: {
-      type: Boolean,
-      default: true,
+      isActive: {
+        type: Boolean,
+        default: true,
+      },
     },
-  },
-  { timestamps: true }
-);
+    { timestamps: true }
+  );
 
-export default mongoose.model("Workspace", workspaceSchema);
+  export default mongoose.model("Workspace", workspaceSchema);

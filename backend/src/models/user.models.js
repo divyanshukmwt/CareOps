@@ -7,7 +7,8 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
+      lowercase: true,
+      trim: true,
     },
 
     password: { type: String },
@@ -31,5 +32,8 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+/* ✅ EMAIL UNIQUE PER WORKSPACE (CORRECT MODEL) */
+userSchema.index({ email: 1, workspaceId: 1 }, { unique: true });
 
 export default mongoose.model("User", userSchema);

@@ -10,18 +10,16 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
 
   const submit = async () => {
-    const res = await apiFetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
+    try {
+      await apiFetch("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password }),
+      });
 
-    if (!res.ok) {
-      alert("Registration failed");
-      return;
+      router.push("/login");
+    } catch (err) {
+      alert(err.message);
     }
-
-    router.push("/login");
   };
 
   return (
@@ -29,7 +27,11 @@ export default function RegisterPage() {
       <h1>Register</h1>
       <input placeholder="Name" onChange={(e) => setName(e.target.value)} />
       <input placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
-      <input placeholder="Password" type="password" onChange={(e) => setPassword(e.target.value)} />
+      <input
+        placeholder="Password"
+        type="password"
+        onChange={(e) => setPassword(e.target.value)}
+      />
       <button onClick={submit}>Register</button>
     </div>
   );

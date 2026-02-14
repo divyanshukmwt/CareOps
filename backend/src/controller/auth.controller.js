@@ -3,22 +3,27 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.models.js";
 import AllowedStaff from "../models/allowedStaff.models.js";
 
-/* ================= OWNER / EXISTING REGISTER (UNCHANGED LOGIC) ================= */
-
+/* ================= REGISTER ================= */
 export const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    let { name, email, password } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields required" });
     }
 
-    const exists = await User.findOne({ email });
+    email = email.toLowerCase().trim();
+
+    // ✅ ONLY CHECK OWNER USERS
+    const exists = await User.findOne({
+      email,
+      role: "OWNER",
+      workspaceId: null,
+    });
+
     if (exists) {
       return res.status(400).json({ message: "Email already exists" });
     }
-
-    const staffEntry = await AllowedStaff.findOne({ email });
 
     const hashed = await bcrypt.hash(password, 10);
 
@@ -27,30 +32,29 @@ export const register = async (req, res) => {
       email,
       password: hashed,
       hasPassword: true,
-      role: staffEntry ? "STAFF" : "OWNER",
-      workspaceId: staffEntry ? staffEntry.workspaceId : null,
+      role: "OWNER",
+      workspaceId: null,
     });
 
     res.status(201).json({ message: "Registered successfully" });
   } catch (error) {
     console.error("REGISTER ERROR 🔴:", error);
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
-  }
 
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
-/* ================= OWNER / NORMAL LOGIN (UNCHANGED) ================= */
-
+/* ================= LOGIN ================= */
 export const login = async (req, res) => {
   try {
     let { email, password, workspaceId } = req.body;
 
-    if (!workspaceId || workspaceId.trim() === "") {
-      workspaceId = null;
-    }
+    email = email.toLowerCase().trim();
+    if (!workspaceId || workspaceId === "") workspaceId = null;
 
     let user;
 
@@ -64,16 +68,18 @@ export const login = async (req, res) => {
       });
     }
 
-    if (!user)
+    if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
+    }
 
-    // ✅ FIX IS HERE
-    if (user.role === "STAFF" && !user.hasPassword)
+    if (user.role === "STAFF" && !user.hasPassword) {
       return res.status(403).json({ message: "Password not set" });
+    }
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match)
+    if (!match) {
       return res.status(401).json({ message: "Invalid credentials" });
+    }
 
     const token = jwt.sign(
       {
@@ -88,6 +94,7 @@ export const login = async (req, res) => {
     res.cookie("careops_token", token, {
       httpOnly: true,
       sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
     });
 
     res.json({
@@ -100,18 +107,18 @@ export const login = async (req, res) => {
   }
 };
 
-
-/* ================= STAFF STEP 1: CHECK ACCESS ================= */
-
+/* ================= STAFF ACCESS ================= */
 export const checkStaffAccess = async (req, res) => {
   const { email, workspaceId } = req.body;
 
-  if (!email || !workspaceId)
+  if (!email || !workspaceId) {
     return res.status(400).json({ message: "Missing fields" });
+  }
 
   const allowed = await AllowedStaff.findOne({ email, workspaceId });
-  if (!allowed)
+  if (!allowed) {
     return res.status(403).json({ message: "Not allowed in this workspace" });
+  }
 
   const user = await User.findOne({ email, workspaceId });
 
@@ -121,21 +128,22 @@ export const checkStaffAccess = async (req, res) => {
   });
 };
 
-/* ================= STAFF STEP 2: SET PASSWORD (FIRST LOGIN) ================= */
-
+/* ================= STAFF SET PASSWORD ================= */
 export const setStaffPassword = async (req, res) => {
   const { email, workspaceId, password } = req.body;
 
-  if (!email || !workspaceId || !password)
+  if (!email || !workspaceId || !password) {
     return res.status(400).json({ message: "Missing fields" });
+  }
 
   const allowed = await AllowedStaff.findOne({ email, workspaceId });
-  if (!allowed)
+  if (!allowed) {
     return res.status(403).json({ message: "Unauthorized" });
-
-  let user = await User.findOne({ email, workspaceId });
+  }
 
   const hashed = await bcrypt.hash(password, 10);
+
+  let user = await User.findOne({ email, workspaceId });
 
   if (!user) {
     user = await User.create({
@@ -153,11 +161,7 @@ export const setStaffPassword = async (req, res) => {
   }
 
   const token = jwt.sign(
-    {
-      userId: user._id,
-      role: "STAFF",
-      workspaceId,
-    },
+    { userId: user._id, role: "STAFF", workspaceId },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -165,6 +169,7 @@ export const setStaffPassword = async (req, res) => {
   res.cookie("careops_token", token, {
     httpOnly: true,
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
   });
 
   res.json({ message: "Password set & logged in" });
@@ -176,18 +181,13 @@ export const logout = async (req, res) => {
 };
 
 export const me = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId).select(
-      "_id email role workspaceId"
-    );
+  const user = await User.findById(req.user.userId).select(
+    "_id email role workspaceId"
+  );
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.json(user);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
   }
+
+  res.json(user);
 };
