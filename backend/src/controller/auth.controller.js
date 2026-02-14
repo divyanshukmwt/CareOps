@@ -32,9 +32,14 @@ export const register = async (req, res) => {
     });
 
     res.status(201).json({ message: "Registered successfully" });
-  } catch {
-    res.status(500).json({ message: "Server error" });
+  } catch (error) {
+    console.error("REGISTER ERROR 🔴:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
+
 };
 
 /* ================= OWNER / NORMAL LOGIN (UNCHANGED) ================= */
