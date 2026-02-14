@@ -1,85 +1,51 @@
-  "use client";
+"use client";
+import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
+import { useRouter } from "next/navigation";
 
-  import { useState } from "react";
-  import { useRouter } from "next/navigation";
-  import { apiFetch } from "@/lib/api";
+export default function CreateWorkspace() {
+  const router = useRouter();
+  const [form, setForm] = useState({
+    name: "",
+    timezone: "",
+    contactEmail: "",
+  });
+  const [workspaceId, setWorkspaceId] = useState(null);
 
-  export default function CreateWorkspacePage() {
-    const router = useRouter();
-
-    const [form, setForm] = useState({
-      name: "",
-      timezone: "",
-      contactEmail: "",
-    });
-
-    const [loading, setLoading] = useState(false);
-
-    const handleChange = (e) => {
-      setForm({ ...form, [e.target.name]: e.target.value });
-    };
-
-    const submit = async () => {
-      setLoading(true);
-
-      try {
-        const res = await apiFetch("/api/workspaces", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include", // 🔐 REQUIRED
-          body: JSON.stringify(form),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          alert(data.message || "Workspace creation failed");
-          setLoading(false);
-          return;
-        }
-
-        // ✅ JWT IS UPDATED BY BACKEND
-        router.push("/app/dashboard");
-      } catch (error) {
-        alert("Server error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    return (
-      <div style={{ maxWidth: 400, margin: "100px auto" }}>
-        <h1>Create Workspace</h1>
-
-        <input
-          name="name"
-          placeholder="Business Name"
-          value={form.name}
-          onChange={handleChange}
-        />
-
-        <select
-          name="timezone"
-          value={form.timezone}
-          onChange={handleChange}
-        >
-          <option value="">Select Timezone</option>
-          <option value="Asia/Kolkata">Asia/Kolkata (India)</option>
-          <option value="UTC">UTC</option>
-          <option value="America/New_York">America/New_York</option>
-          <option value="Europe/London">Europe/London</option>
-        </select>
-
-        <input
-          name="contactEmail"
-          placeholder="Contact Email"
-          value={form.contactEmail}
-          onChange={handleChange}
-        />
-
-        <button onClick={submit} disabled={loading}>
-          {loading ? "Creating..." : "Create Workspace"}
-        </button>
-      </div>
+  useEffect(() => {
+    apiFetch("/api/auth/me").then((u) =>
+      setForm((f) => ({ ...f, contactEmail: u.email }))
     );
-  }
+  }, []);
+
+  const submit = async () => {
+    const data = await apiFetch("/api/workspaces", {
+      method: "POST",
+      body: JSON.stringify(form),
+    });
+    setWorkspaceId(data.workspaceId);
+  };
+
+  return (
+    <>
+      <input placeholder="Business Name" onChange={(e) => setForm({ ...form, name: e.target.value })} />
+      <select onChange={(e) => setForm({ ...form, timezone: e.target.value })}>
+        <option value="">Timezone</option>
+        <option value="Asia/Kolkata">Asia/Kolkata</option>
+      </select>
+      <input value={form.contactEmail} disabled />
+
+      <button onClick={submit}>Create</button>
+
+      {workspaceId && (
+        <>
+          <p>Workspace ID:</p>
+          <code>{workspaceId}</code>
+          <button onClick={() => router.push("/app/dashboard")}>
+            Continue
+          </button>
+        </>
+      )}
+    </>
+  );
+}

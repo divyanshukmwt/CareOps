@@ -30,7 +30,6 @@ export const register = async (req, res) => {
       workspaceId: null,
     });
 
-    // ✅ AUTO LOGIN AFTER REGISTER
     const token = jwt.sign(
       { userId: user._id, role: "OWNER", workspaceId: null },
       process.env.JWT_SECRET,
@@ -39,56 +38,37 @@ export const register = async (req, res) => {
 
     res.cookie("careops_token", token, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+      secure: true,
     });
 
     res.status(201).json({
       message: "Registered & logged in",
-      user: {
-        email: user.email,
-        role: user.role,
-      },
     });
   } catch (error) {
-    console.error(error);
+    console.error("REGISTER ERROR:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 /* ================= LOGIN ================= */
 export const login = async (req, res) => {
   try {
     let { email, password, workspaceId } = req.body;
-
     email = email.toLowerCase().trim();
-    if (!workspaceId || workspaceId === "") workspaceId = null;
+    if (!workspaceId) workspaceId = null;
 
-    let user;
+    const user = workspaceId
+      ? await User.findOne({ email, workspaceId, role: "STAFF" })
+      : await User.findOne({ email, role: "OWNER" });
 
-    if (!workspaceId) {
-      user = await User.findOne({ email, role: "OWNER" });
-    } else {
-      user = await User.findOne({
-        email,
-        workspaceId,
-        role: "STAFF",
-      });
-    }
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    if (user.role === "STAFF" && !user.hasPassword) {
+    if (user.role === "STAFF" && !user.hasPassword)
       return res.status(403).json({ message: "Password not set" });
-    }
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+    if (!match) return res.status(401).json({ message: "Invalid credentials" });
 
     const token = jwt.sign(
       {
@@ -102,58 +82,31 @@ export const login = async (req, res) => {
 
     res.cookie("careops_token", token, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+      secure: true,
     });
 
-    res.json({
-      role: user.role,
-      hasWorkspace: !!user.workspaceId,
-    });
-  } catch (err) {
-    console.error(err);
+    res.json({ role: user.role, hasWorkspace: !!user.workspaceId });
+  } catch {
     res.status(500).json({ message: "Server error" });
   }
 };
 
-/* ================= STAFF ACCESS ================= */
+/* ================= STAFF ================= */
 export const checkStaffAccess = async (req, res) => {
   const { email, workspaceId } = req.body;
-
-  if (!email || !workspaceId) {
-    return res.status(400).json({ message: "Missing fields" });
-  }
-
   const allowed = await AllowedStaff.findOne({ email, workspaceId });
-  if (!allowed) {
-    return res.status(403).json({ message: "Not allowed in this workspace" });
-  }
+  if (!allowed) return res.status(403).json({ message: "Not allowed" });
 
   const user = await User.findOne({ email, workspaceId });
-
-  res.json({
-    allowed: true,
-    hasPassword: user?.hasPassword || false,
-  });
+  res.json({ allowed: true, hasPassword: user?.hasPassword || false });
 };
 
-/* ================= STAFF SET PASSWORD ================= */
 export const setStaffPassword = async (req, res) => {
   const { email, workspaceId, password } = req.body;
-
-  if (!email || !workspaceId || !password) {
-    return res.status(400).json({ message: "Missing fields" });
-  }
-
-  const allowed = await AllowedStaff.findOne({ email, workspaceId });
-  if (!allowed) {
-    return res.status(403).json({ message: "Unauthorized" });
-  }
-
   const hashed = await bcrypt.hash(password, 10);
 
   let user = await User.findOne({ email, workspaceId });
-
   if (!user) {
     user = await User.create({
       name: email.split("@")[0],
@@ -177,26 +130,21 @@ export const setStaffPassword = async (req, res) => {
 
   res.cookie("careops_token", token, {
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    sameSite: "none",
+    secure: true,
   });
 
-  res.json({ message: "Password set & logged in" });
-};
-
-export const logout = async (req, res) => {
-  res.clearCookie("careops_token");
-  res.json({ message: "Logged out" });
+  res.json({ message: "Password set" });
 };
 
 export const me = async (req, res) => {
   const user = await User.findById(req.user.userId).select(
     "_id email role workspaceId"
   );
-
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
-
   res.json(user);
+};
+
+export const logout = async (_, res) => {
+  res.clearCookie("careops_token");
+  res.json({ message: "Logged out" });
 };
