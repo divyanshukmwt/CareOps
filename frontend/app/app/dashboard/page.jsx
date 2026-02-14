@@ -1,11 +1,12 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/dashboard/stats", {
+    apiFetch("/api/dashboard/stats", {
       credentials: "include",
     })
       .then(res => res.json())

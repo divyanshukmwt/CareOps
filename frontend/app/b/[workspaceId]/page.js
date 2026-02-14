@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { apiFetch } from "@/lib/api";
 
 export default function PublicBookingPage() {
   const { workspaceId } = useParams();
@@ -26,7 +27,7 @@ export default function PublicBookingPage() {
     setLoadingForms(true);
     setError("");
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/public/forms/${workspaceId}`)
+    apiFetch(`/api/public/forms/${workspaceId}`)
       .then(async (res) => {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -53,8 +54,8 @@ export default function PublicBookingPage() {
     const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/bookings/book`,
+      const res = await apiFetch(
+        "/api/bookings/book",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

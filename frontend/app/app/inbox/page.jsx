@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 export default function InboxPage() {
@@ -9,7 +10,7 @@ export default function InboxPage() {
   const [reply, setReply] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/inbox", {
+    apiFetch("/api/inbox", {
       credentials: "include",
     })
       .then(res => res.json())
@@ -19,16 +20,16 @@ export default function InboxPage() {
   const openConversation = async (conv) => {
     setSelectedConv(conv);
 
-    const res = await fetch(
-      `http://localhost:4000/api/inbox/conversation/${conv.conversationId}`,
+    const res = await apiFetch(
+      `/api/inbox/conversation/${conv.conversationId}`,
       { credentials: "include" }
     );
     setMessages(await res.json());
   };
 
   const sendReply = async () => {
-    await fetch(
-      `http://localhost:4000/api/inbox/conversation/${selectedConv.conversationId}/reply`,
+    await apiFetch(
+      `/api/inbox/conversation/${selectedConv.conversationId}/reply`,
       {
         method: "POST",
         credentials: "include",

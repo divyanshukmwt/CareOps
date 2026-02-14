@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 export default function InventoryPage() {
@@ -10,7 +11,7 @@ export default function InventoryPage() {
   const [message, setMessage] = useState("");
 
   const fetchInventory = async () => {
-    const res = await fetch("http://localhost:4000/api/inventory", {
+    const res = await apiFetch("/api/inventory", {
       credentials: "include",
     });
     const data = await res.json();
@@ -24,8 +25,8 @@ export default function InventoryPage() {
   const addOrUpdate = async () => {
     if (!name || !quantity) return;
 
-    const res = await fetch(
-      "http://localhost:4000/api/inventory/upsert",
+    const res = await apiFetch(
+      "/api/inventory/upsert",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

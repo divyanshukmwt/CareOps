@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { apiFetch } from "@/lib/api";
 
 export default function PublicFormPage() {
   const { publicId } = useParams();
@@ -12,7 +13,7 @@ export default function PublicFormPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/public/form/${publicId}`)
+    apiFetch(`/api/public/form/${publicId}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.form) {
@@ -29,8 +30,8 @@ export default function PublicFormPage() {
   };
 
   const submitForm = async () => {
-    const res = await fetch(
-      `http://localhost:4000/api/public/form/${publicId}`,
+    const res = await apiFetch(
+      `/api/public/form/${publicId}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

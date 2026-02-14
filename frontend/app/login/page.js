@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,7 +14,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   const checkStaff = async () => {
-    const res = await fetch("http://localhost:4000/api/auth/staff/check", {
+    const res = await apiFetch("/api/auth/staff/check", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, workspaceId }),
@@ -31,7 +32,7 @@ export default function LoginPage() {
         ? { email, password }
         : { email, password, workspaceId };
 
-    const res = await fetch("http://localhost:4000/api/auth/login", {
+    const res = await apiFetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -44,7 +45,7 @@ export default function LoginPage() {
 
 
   const setStaffPassword = async () => {
-    const res = await fetch("http://localhost:4000/api/auth/staff/set-password", {
+    const res = await apiFetch("/api/auth/staff/set-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

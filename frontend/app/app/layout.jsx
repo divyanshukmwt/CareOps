@@ -1,12 +1,12 @@
 "use client";
-
+import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 export default function AppLayout({ children }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/auth/me", {
+    apiFetch("api/auth/me", {
       credentials: "include",
     })
       .then((res) => res.json())

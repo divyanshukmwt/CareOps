@@ -1,10 +1,11 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
 const WORKSPACE_ID = "698c41f69544ffb5052a58c4";
-const socket = io("http://localhost:4000");
+const socket = io(process.env.NEXT_PUBLIC_API_URL);
 
 export default function DashboardPage() {
     const [stats, setStats] = useState(null);
@@ -12,7 +13,7 @@ export default function DashboardPage() {
 
     const fetchStats = async () => {
         setLoading(true);
-        const res = await fetch("http://localhost:4000/api/dashboard/stats", {
+        const res = await apiFetch("/api/dashboard/stats", {
             credentials: "include",
         });
 

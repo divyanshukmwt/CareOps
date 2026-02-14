@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 export default function FormsPage() {
@@ -12,7 +13,7 @@ export default function FormsPage() {
   const [required, setRequired] = useState(false);
 
   const loadForms = async () => {
-    const res = await fetch("http://localhost:4000/api/forms", {
+    const res = await apiFetch("/api/forms", {
       credentials: "include",
     });
     const data = await res.json();
@@ -37,7 +38,7 @@ export default function FormsPage() {
   };
 
   const createForm = async () => {
-    const res = await fetch("http://localhost:4000/api/forms", {
+    const res = await apiFetch("/api/forms", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },

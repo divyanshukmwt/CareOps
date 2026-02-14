@@ -1,5 +1,5 @@
 "use client";
-
+import { apiFetch } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
 
 export default function BookingsPage() {
@@ -22,21 +22,21 @@ export default function BookingsPage() {
   const [inventoryUsage, setInventoryUsage] = useState([]);
 
   const loadBookings = async () => {
-    const res = await fetch("http://localhost:4000/api/bookings", {
+    const res = await apiFetch("/api/bookings", {
       credentials: "include",
     });
     setBookings(await res.json());
   };
 
   const loadInventory = async () => {
-    const res = await fetch("http://localhost:4000/api/inventory", {
+    const res = await apiFetch("/api/inventory", {
       credentials: "include",
     });
     setInventory(await res.json());
   };
 
   const loadForms = async () => {
-    const res = await fetch("http://localhost:4000/api/forms", {
+    const res = await fetch("/api/forms", {
       credentials: "include",
     });
     setFormsList(await res.json());
@@ -54,7 +54,7 @@ export default function BookingsPage() {
   }, [bookings, filter]);
 
 const createBooking = async () => {
-  const res = await fetch("http://localhost:4000/api/bookings/admin/book", {  
+  const res = await apiFetch("/api/bookings/admin/book", {  
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -77,16 +77,16 @@ const createBooking = async () => {
 
   const viewForms = async (b) => {
     setSelectedBooking(b);
-    const res = await fetch(
-      `http://localhost:4000/api/bookings/${b._id}/forms`,
+    const res = await apiFetch(
+      `/api/bookings/${b._id}/forms`,
       { credentials: "include" }
     );
     setForms(await res.json());
   };
 
   const markCompleted = async () => {
-    await fetch(
-      `http://localhost:4000/api/bookings/${selectedBooking._id}/complete`,
+    await apiFetch(
+      `/api/bookings/${selectedBooking._id}/complete`,
       {
         method: "PATCH",
         credentials: "include",

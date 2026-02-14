@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api";
 
 export default function CreateWorkspacePage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function CreateWorkspacePage() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:4000/api/workspaces", {
+      const res = await apiFetch("/api/workspaces", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // 🔐 REQUIRED

@@ -1,11 +1,12 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
 const WORKSPACE_ID = "698c41f69544ffb5052a58c4";
 
-const socket = io("http://localhost:4000");
+const socket = io(process.env.NEXT_PUBLIC_API_URL);
 
 export default function InboxPage() {
   const [conversations, setConversations] = useState([]);
@@ -15,7 +16,7 @@ export default function InboxPage() {
 
   // Fetch inbox list
   const fetchInbox = () => {
-    fetch(`http://localhost:4000/api/inbox/${WORKSPACE_ID}`)
+    apiFetch(`/api/inbox/${WORKSPACE_ID}`)
       .then((res) => res.json())
       .then(setConversations)
       .catch(console.error);
@@ -24,8 +25,8 @@ export default function InboxPage() {
   // Fetch messages
   const loadMessages = (conversationId) => {
     setSelectedConversation(conversationId);
-    fetch(
-      `http://localhost:4000/api/inbox/conversation/${conversationId}`
+    apiFetch(
+      `/api/inbox/conversation/${conversationId}`
     )
       .then((res) => res.json())
       .then(setMessages)
@@ -36,8 +37,8 @@ export default function InboxPage() {
   const sendReply = async () => {
     if (!reply || !selectedConversation) return;
 
-    await fetch(
-      `http://localhost:4000/api/inbox/conversation/${selectedConversation}/reply`,
+    await apiFetch(
+    `/api/inbox/conversation/${selectedConversation}/reply`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

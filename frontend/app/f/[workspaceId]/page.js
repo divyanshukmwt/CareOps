@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 import { useState } from "react";
 
 export default function ContactPage({ params }) {
@@ -12,7 +13,7 @@ export default function ContactPage({ params }) {
   });
 
   const submit = async () => {
-    const res = await fetch("http://localhost:4000/api/public/contact", {
+    const res = await apiFetch("/api/public/contact", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...form, workspaceId }),

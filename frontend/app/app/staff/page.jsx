@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 export default function StaffPage() {
@@ -9,7 +10,7 @@ export default function StaffPage() {
   const [message, setMessage] = useState("");
 
   const fetchStaff = async () => {
-    const res = await fetch("http://localhost:4000/api/staff/list", {
+    const res = await apiFetch("/api/staff/list", {
       credentials: "include",
     });
     const data = await res.json();
@@ -23,7 +24,7 @@ export default function StaffPage() {
   const addStaff = async () => {
     if (!email) return;
 
-    const res = await fetch("http://localhost:4000/api/staff/add", {
+    const res = await apiFetch("/api/staff/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -43,7 +44,7 @@ export default function StaffPage() {
   };
 
   const togglePermission = async (staffId, permission, value) => {
-    await fetch("http://localhost:4000/api/staff/permission", {
+    await apiFetch("/api/staff/permission", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
