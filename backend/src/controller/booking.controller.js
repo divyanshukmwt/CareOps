@@ -5,7 +5,7 @@ import Inventory from "../models/inventory.models.js";
 import BookingInventory from "../models/bookingInventory.models.js";
 import Conversation from "../models/conversation.models.js";
 import Message from "../models/message.models.js";
-import { sendEmail } from "../utils/email.util.js";
+import { sendBookingEmail } from "../utils/email.util.js";
 
 /* ================= SLOT RULES ================= */
 const START_HOUR = 10;
@@ -18,6 +18,7 @@ const isValidSlot = (date) => {
 
   if (!ALLOWED_DAYS.includes(day)) return false;
   if (hour < START_HOUR || hour >= END_HOUR) return false;
+
   return true;
 };
 
@@ -36,7 +37,14 @@ export const createBooking = async (req, res) => {
     const workspaceId =
       source === "ADMIN" ? req.user?.workspaceId : req.body.workspaceId;
 
-    if (!workspaceId || !name || !email || !serviceName || !scheduledAt || !formId) {
+    if (
+      !workspaceId ||
+      !name ||
+      !email ||
+      !serviceName ||
+      !scheduledAt ||
+      !formId
+    ) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -83,22 +91,18 @@ export const createBooking = async (req, res) => {
       formId,
     });
 
+    /* FORM LINK */
     const formLink = `${process.env.CLIENT_URL}/form/${bookingForm.publicId}`;
 
-    /* EMAIL */
-    await sendEmail({
+    /* 📧 SEND EMAIL */
+    await sendBookingEmail({
       to: email,
-      subject: "Your booking is confirmed",
-      html: `
-        <h2>Booking Confirmed</h2>
-        <p>Hello ${name},</p>
-        <p>Your booking for <strong>${serviceName}</strong> is confirmed.</p>
-        <p>Please complete the form:</p>
-        <a href="${formLink}">${formLink}</a>
-      `,
+      customerName: name,
+      serviceName,
+      formLink,
     });
 
-    /* INBOX MESSAGE */
+    /* 📥 INBOX MESSAGE */
     await Message.create({
       conversationId: conversation._id,
       sender: process.env.SYSTEM_SENDER || "SYSTEM",
@@ -145,7 +149,9 @@ export const completeBooking = async (req, res) => {
     const { inventoryUsage = [] } = req.body;
 
     const booking = await Booking.findById(bookingId);
-    if (!booking) return res.status(404).json({ message: "Booking not found" });
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
 
     booking.status = "COMPLETED";
     await booking.save();
@@ -169,3 +175,4 @@ export const completeBooking = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
