@@ -1,5 +1,5 @@
 import express from "express";
-import { submitContactForm } from "../controller/public.controller.js";
+import { submitContactForm, getPublicConversationMessages, postPublicMessage } from "../controller/public.controller.js";
 import {
   getPublicForm,
   submitPublicForm,
@@ -14,5 +14,12 @@ router.get("/forms/:workspaceId", getPublicFormsByWorkspace);
 
 router.get("/form/:bookingFormPublicId", getPublicForm);
 router.post("/form/:bookingFormPublicId", submitPublicForm);
+
+router.get("/chat/:conversationId/messages", getPublicConversationMessages);
+router.post("/chat/:conversationId/messages", postPublicMessage);
+
+// backward-compatible routes used by frontend public chat page
+router.get("/chat/:conversationId", getPublicConversationMessages);
+router.post("/chat/:conversationId", postPublicMessage);
 
 export default router;

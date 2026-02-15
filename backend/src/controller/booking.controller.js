@@ -58,6 +58,7 @@ export const createBooking = async (req, res) => {
     });
 
     const formLink = `${process.env.CLIENT_URL}/form/${bookingForm.publicId}`;
+    const chatLink = `${process.env.CLIENT_URL}/chat/${conversation._id}`;
 
     await sendEmailSafe({
       to: email,
@@ -65,8 +66,11 @@ export const createBooking = async (req, res) => {
       html: `
         <h2>Hello ${name},</h2>
         <p>Your booking is confirmed.</p>
-        <p>Form link:</p>
+        <p><strong>Form link</strong></p>
         <a href="${formLink}">${formLink}</a>
+        <p><strong>Chat with us</strong></p>
+        <p>If you need to contact us about this booking, use the chat link below:</p>
+        <a href="${chatLink}">${chatLink}</a>
       `,
     });
 

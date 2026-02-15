@@ -73,4 +73,47 @@ export const getPublicForms = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const getPublicConversationMessages = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const messages = await Message.find({ conversationId }).sort({ createdAt: 1 });
+    const conv = await Conversation.findById(conversationId).populate("contactId", "name email");
+    const contactName = conv?.contactId?.name || null;
+    res.json({ messages, contactName });
+  } catch (err) {
+    console.error("Public conversation fetch error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const postPublicMessage = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    // support both { message } and { content }
+    const { name, email, content, message } = req.body;
+    const text = content || message || "";
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) return res.status(404).json({ message: "Conversation not found" });
+
+    const senderName = name || email || "CUSTOMER";
+
+    const msg = await Message.create({
+      conversationId,
+      sender: senderName,
+      content: text,
+      channel: "PUBLIC",
+    });
+
+    // broadcast to workspace room and conversation-specific room
+    io.to(conversation.workspaceId.toString()).emit("newMessage", msg);
+    io.to(`conversation_${conversationId}`).emit("newMessage", msg);
+
+    res.status(201).json({ message: "Message sent" });
+  } catch (err) {
+    console.error("Public post message error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
   

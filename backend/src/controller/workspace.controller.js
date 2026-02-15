@@ -42,13 +42,13 @@ export const createWorkspace = async (req, res) => {
     /* 📧 EMAIL WORKSPACE ID (SAFE) */
     await sendEmailSafe({
       to: user.email,
-      subject: "Your CareOps Workspace ID",
+      subject: "Workspace Created Successfully",
       html: `
-        <h2>Workspace Created 🎉</h2>
-        <p><strong>Workspace Name:</strong> ${workspace.name}</p>
+        <h2>Workspace Created Successfully 🎉</h2>
+        <p>Your workspace <strong>${workspace.name}</strong> has been created.</p>
         <p><strong>Workspace ID:</strong></p>
         <code style="font-size:16px">${workspace._id}</code>
-        <p>Share this ID with your staff.</p>
+        <p>This Workspace ID is required for login and for inviting staff. Keep it safe.</p>
       `,
     });
 

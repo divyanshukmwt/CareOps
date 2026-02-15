@@ -6,6 +6,7 @@
     import { Server } from "socket.io";
 
     import connectDB from "./db/db.js";
+    import Conversation from "./models/conversation.models.js";
 
     import workspaceRoutes from "./routes/workspace.routes.js";
     import publicRoutes from "./routes/public.routes.js";
@@ -55,6 +56,22 @@
     io.on("connection", (socket) => {
       socket.on("joinWorkspace", (workspaceId) => {
         socket.join(workspaceId);
+      });
+
+      socket.on("joinConversation", async (conversationId) => {
+        try {
+          socket.join(`conversation_${conversationId}`);
+          // Notify workspace that a customer joined this conversation (presence)
+          const conv = await Conversation.findById(conversationId).select("workspaceId");
+          if (conv && conv.workspaceId) {
+            io.to(conv.workspaceId.toString()).emit("customer:online", {
+              conversationId,
+              at: new Date().toISOString(),
+            });
+          }
+        } catch (err) {
+          console.error("joinConversation error:", err.message);
+        }
       });
     });
 

@@ -54,6 +54,7 @@ export const replyToConversation = async (req, res) => {
 
     io.to(req.user.workspaceId.toString()).emit("newMessage", msg);
     io.to(req.user.workspaceId.toString()).emit("dashboard:update");
+    io.to(`conversation_${req.params.conversationId}`).emit("newMessage", msg);
 
     res.json({ message: "Reply sent" });
   } catch (error) {
