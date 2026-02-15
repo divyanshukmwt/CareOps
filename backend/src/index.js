@@ -98,6 +98,11 @@
 
     /* ✅ SERVER */
     const PORT = process.env.PORT || 4000;
+    // One-time startup logs for email debugging
+    console.log("[startup] EMAIL_FROM:", process.env.EMAIL_FROM);
+    console.log("[startup] CLIENT_URL:", process.env.CLIENT_URL);
+    console.log("[startup] RESEND_API_KEY set:", !!process.env.RESEND_API_KEY);
+
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

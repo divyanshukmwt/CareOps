@@ -9,6 +9,7 @@ const getResend = () => {
   }
 
   if (!resendClient) {
+    console.log("📧 Initializing Resend client");
     resendClient = new Resend(process.env.RESEND_API_KEY);
   }
 
@@ -18,17 +19,29 @@ const getResend = () => {
 export const sendEmailSafe = async ({ to, subject, html }) => {
   try {
     const resend = getResend();
-    if (!resend) return;
+    if (!resend) {
+      console.warn("📧 sendEmailSafe skipped because Resend client is not configured");
+      return;
+    }
 
-    await resend.emails.send({
+    console.log(`📧 Sending email to: ${to} | subject: ${subject}`);
+
+    const res = await resend.emails.send({
       from: process.env.EMAIL_FROM,
       to,
       subject,
       html,
     });
 
-    console.log("📧 Email sent to:", to);
+    console.log("📧 Email send response:", res);
+    return res;
   } catch (err) {
-    console.error("❌ Email send failed:", err.message);
+    console.error("❌ Email send failed:", err && err.message ? err.message : err);
+    throw err;
   }
 };
+
+// Log environment variables useful for debugging email issues
+console.log("EMAIL_FROM:", process.env.EMAIL_FROM);
+console.log("CLIENT_URL:", process.env.CLIENT_URL);
+console.log("RESEND_API_KEY set:", !!process.env.RESEND_API_KEY);

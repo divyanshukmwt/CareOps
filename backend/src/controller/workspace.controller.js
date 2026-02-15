@@ -61,3 +61,20 @@ export const createWorkspace = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+          try {
+            console.log("📧 Sending workspace email to:", user.email, "workspaceId:", workspace._id);
+            const emailRes = await sendEmailSafe({
+              to: user.email,
+              subject: "Workspace Created Successfully",
+              html: `
+                <h2>Workspace Created Successfully 🎉</h2>
+                <p>Your workspace <strong>${workspace.name}</strong> has been created.</p>
+                <p><strong>Workspace ID:</strong></p>
+                <code style="font-size:16px">${workspace._id}</code>
+                <p>This Workspace ID is required for login and for inviting staff. Keep it safe.</p>
+              `,
+            });
+            console.log("📧 Workspace email result:", emailRes);
+          } catch (err) {
+            console.error("❌ Workspace email failed:", err && err.message ? err.message : err);
+          }

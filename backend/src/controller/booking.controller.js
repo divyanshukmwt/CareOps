@@ -60,19 +60,21 @@ export const createBooking = async (req, res) => {
     const formLink = `${process.env.CLIENT_URL}/form/${bookingForm.publicId}`;
     const chatLink = `${process.env.CLIENT_URL}/chat/${conversation._id}`;
 
-    await sendEmailSafe({
-      to: email,
-      subject: `Your booking for ${serviceName}`,
-      html: `
-        <h2>Hello ${name},</h2>
-        <p>Your booking is confirmed.</p>
-        <p><strong>Form link</strong></p>
-        <a href="${formLink}">${formLink}</a>
-        <p><strong>Chat with us</strong></p>
-        <p>If you need to contact us about this booking, use the chat link below:</p>
-        <a href="${chatLink}">${chatLink}</a>
-      `,
-    });
+      try {
+        console.log("📧 Sending booking email to:", email, "bookingId:", booking._id, "conversationId:", conversation._id);
+        const emailRes = await sendEmailSafe({
+          to: email,
+          subject: `Booking confirmation - ${workspace.name}`,
+          html: `
+            <h3>Thanks for your booking</h3>
+            <p>View your booking form: <a href="${formLink}">${formLink}</a></p>
+            <p>Use this chat link to message the workspace: <a href="${chatLink}">${chatLink}</a></p>
+          `,
+        });
+        console.log("📧 Booking email result:", emailRes);
+      } catch (err) {
+        console.error("❌ Booking email failed:", err && err.message ? err.message : err);
+      }
 
     await Message.create({
       conversationId: conversation._id,
