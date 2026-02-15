@@ -67,7 +67,8 @@ export const createBooking = async (req, res) => {
           subject: `Booking confirmation - ${workspace.name}`,
           html: `
             <h3>Thanks for your booking</h3>
-            <p>View your booking form: <a href="${formLink}">${formLink}</a></p>
+            <p>Please complete your form using the link below</p>
+            <p><a href="${formLink}">${formLink}</a></p>
             <p>Use this chat link to message the workspace: <a href="${chatLink}">${chatLink}</a></p>
           `,
         });
@@ -83,7 +84,7 @@ export const createBooking = async (req, res) => {
       channel: "INTERNAL",
     });
 
-    res.status(201).json({ booking });
+    res.status(201).json({ booking, formLink });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

@@ -18,6 +18,7 @@ export default function PublicBookingPage() {
   const [loadingForms, setLoadingForms] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [formLink, setFormLink] = useState("");
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -72,6 +73,7 @@ export default function PublicBookingPage() {
       const _d = await res.json();
       if (!res.ok) throw new Error(_d?.message || "API error");
 
+      if (_d?.formLink) setFormLink(_d.formLink);
       setSuccess(true);
     } catch (err) {
       setError(err.message);
@@ -93,6 +95,16 @@ export default function PublicBookingPage() {
           <p className="mt-2 text-neutral-600 text-sm">
             We’ve sent a confirmation to your email with your booking details and a link to chat with us. Check your inbox.
           </p>
+          {formLink && (
+            <a
+              href={formLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-block w-full text-center px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Fill form
+            </a>
+          )}
         </div>
       </div>
     );
