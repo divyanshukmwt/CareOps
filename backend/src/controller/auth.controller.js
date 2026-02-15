@@ -58,9 +58,19 @@ export const login = async (req, res) => {
     email = email.toLowerCase().trim();
     if (!workspaceId) workspaceId = null;
 
-    const user = workspaceId
-      ? await User.findOne({ email, workspaceId, role: "STAFF" })
-      : await User.findOne({ email, role: "OWNER" });
+    // If a workspaceId is provided, prefer finding a STAFF user in that workspace.
+    // But fall back to OWNER if a STAFF user is not found — this handles cases
+    // where frontend may send a workspaceId for owner logins (legacy/client behavior).
+    let user;
+    if (workspaceId) {
+      user = await User.findOne({ email, workspaceId, role: "STAFF" });
+      if (!user) {
+        // fallback to owner lookup by email only
+        user = await User.findOne({ email, role: "OWNER" });
+      }
+    } else {
+      user = await User.findOne({ email, role: "OWNER" });
+    }
 
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 

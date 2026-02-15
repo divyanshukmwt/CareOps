@@ -13,7 +13,7 @@ export default function CreateWorkspace() {
   const [workspaceId, setWorkspaceId] = useState(null);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, { cache: "no-store" })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, { cache: "no-store", credentials: "include" })
       .then((res) => {
         if (res.status === 304) throw new Error("Cached response, retry");
         return res.json().then((data) => {
@@ -29,6 +29,7 @@ export default function CreateWorkspace() {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workspaces`, {
       method: "POST",
       cache: "no-store",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
@@ -137,11 +138,7 @@ export default function CreateWorkspace() {
           )}
         </div>
 
-        <p className="text-center mt-6">
-          <Link href="/app/dashboard" className="text-sm text-neutral-500 hover:text-neutral-700">
-            Skip to dashboard
-          </Link>
-        </p>
+        {/* Skip to dashboard removed to enforce authentication */}
       </div>
     </div>
   );
